@@ -24,7 +24,7 @@ public class HANDLEByReference extends ByReference {
      **/
     public HANDLEByReference(int h) {
         //初始化指针的大小为4字节
-        super(4);
+        super(8);
         this.setValue(h);
     }
 

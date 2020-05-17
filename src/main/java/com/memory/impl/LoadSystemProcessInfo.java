@@ -30,6 +30,7 @@ public class LoadSystemProcessInfo {
         if (processHandle == 0 || lastError != 0) {
             executeResult.setLastError(lastError);
             executeResult.setMessage("获取系统进程信息失败,错误代码:" + lastError);
+            System.out.println("获取系统进程信息失败,错误代码:" + lastError);
             return executeResult;
         }
         try {
