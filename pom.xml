@@ -20,12 +20,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>jna</groupId>
+            <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/lib/jna-4.1.0.jar</systemPath>
+            <version>5.5.0</version>
         </dependency>
+
 
         <dependency>
             <groupId>JTattooAluminiumLookAndFeel</groupId>
@@ -35,5 +34,20 @@
             <systemPath>${project.basedir}/src/lib/JTattooAluminiumLookAndFeel.jar</systemPath>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <!--阿里云主仓库，代理了maven central和jcenter仓库-->
+        <repository>
+            <id>aliyun</id>
+            <name>aliyun</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 </project>

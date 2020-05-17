@@ -21,29 +21,23 @@ import com.memory.wnd.ProcessChooseWnd;
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
  * */
-public class ProcessChooseWndEvent 
-{
+public class ProcessChooseWndEvent {
 	private ProcessChooseWnd processChooseWnd;
-	
-	public ProcessChooseWndEvent(ProcessChooseWnd processChooseWnd)
-	{
+
+	public ProcessChooseWndEvent(ProcessChooseWnd processChooseWnd) {
 		this.processChooseWnd = processChooseWnd;
 	}
-	
+
 	/**
 	 * 窗口每次setVisible(true)时,加载系统进程到list控件中
-	 * */
-	public WindowAdapter windowActivated()
-	{
-		return new WindowAdapter()
-		{
+	 */
+	public WindowAdapter windowActivated() {
+		return new WindowAdapter() {
 			@SuppressWarnings("unchecked")
-			public void windowActivated(WindowEvent e) 
-			{
+			public void windowActivated(WindowEvent e) {
 				//获取系统进程列表
 				ExecuteResult result = new LoadSystemProcessInfo().getProcess();
-				if(result.getLastError()!=0)
-				{
+				if (result.getLastError() != 0) {
 					JOptionPane.showMessageDialog(processChooseWnd, result.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
 					System.exit(0);//退出程序
 					return;
@@ -51,48 +45,41 @@ public class ProcessChooseWndEvent
 				List<Process> list = (List<Process>) result.getValue();
 				processChooseWnd.model.clear();
 				//显示到列表
-				for(Process p : list)
-				{
+				for (Process p : list) {
 					processChooseWnd.model.addElement(p);
 				}
 			}
 		};
 	}
-	
+
 	/**
 	 * 进程列表鼠标双击选中事件
-	 * **/
-	public MouseAdapter processListMouseDClient()
-	{
-		return new MouseAdapter()
-		{
-			public void mouseClicked(MouseEvent e) 
-			{
-				if(e.getClickCount()==2)
-				{
+	 **/
+	public MouseAdapter processListMouseDClient() {
+		return new MouseAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
 					//获取点击值
 					Object object = processChooseWnd.list.getSelectedValue();
-					if(object==null) return;
+					if (object == null) return;
 					processChooseWnd.setVisible(false);
-					Process p = (Process)object;
+					Process p = (Process) object;
 					//判断内存范围下拉框是否显示正确
-					if(processChooseWnd.mainWnd.memoryRangecomBoBox.getSelectedIndex()!=0)
-					{
+					if (processChooseWnd.mainWnd.memoryRangecomBoBox.getSelectedIndex() != 0) {
 						processChooseWnd.mainWnd.memoryRangecomBoBox.setSelectedIndex(0);
 					}
 					//获取程序在内存中的范围
 					MemoryRangeQuery query = new MemoryRangeQuery();
 					ExecuteResult executeResult = query.queryProcessRange(p.getPid());
-					if(executeResult.getLastError()!=0)
-					{
+					if (executeResult.getLastError() != 0) {
 						JOptionPane.showMessageDialog(processChooseWnd.mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
 						processChooseWnd.mainWnd.memoryStartAddress.setText("0x0");
 						processChooseWnd.mainWnd.memoryEndAddress.setText("0x0");
 						return;
 					}
-					MemoryRange range = (MemoryRange)executeResult.getValue();
-					processChooseWnd.mainWnd.memoryStartAddress.setText("0x"+Long.toString(range.getMinValue(), 16).toUpperCase());
-					processChooseWnd.mainWnd.memoryEndAddress.setText("0x"+Long.toString(range.getMaxValue(),16).toUpperCase());
+					MemoryRange range = (MemoryRange) executeResult.getValue();
+					processChooseWnd.mainWnd.memoryStartAddress.setText("0x" + Long.toString(range.getMinValue(), 16).toUpperCase());
+					processChooseWnd.mainWnd.memoryEndAddress.setText("0x" + Long.toString(range.getMaxValue(), 16).toUpperCase());
 					//界面显示处理
 					processChooseWnd.mainWnd.memoryRangecomBoBox.setEnabled(true);
 					processChooseWnd.mainWnd.statusLabel.setText(p.getProcessName());
