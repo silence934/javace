@@ -15,214 +15,182 @@ import com.memory.wnd.MainWnd;
  * 作者:Code菜鸟
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
- * **/
-public class MemorySearchThread extends Thread
-{
-	private MainWnd mainWnd;
-	private MemorySearchImpl memorySearch = null;
-	private String searchValue = "0";
-	private int searchType = 0;//0代表内存搜索,1代表搜索变动
-	public JTableValueUpdate tableValueUpdate;//列表更新Table线程
-	
-	public MemorySearchThread(MainWnd mainWnd,String searchValue,int searchType)
-	{
-		this.mainWnd = mainWnd;
-		this.memorySearch = new MemorySearchImpl();
-		this.searchValue = searchValue;
-		this.searchType = searchType;
-	}
-	
-	public void run()
-	{
-		try 
-		{
-			//界面显示处理
-			mainWnd.firstSearchButton.setEnabled(false);
-			mainWnd.searchDataType.setEnabled(false);
-			mainWnd.killButton.setEnabled(false);
-			mainWnd.writeMemoryButton.setEnabled(false);
-			mainWnd.resetButton.setEnabled(false);
-			mainWnd.stopButton.setVisible(true);
-			mainWnd.progressBar.setIndeterminate(true);
-			mainWnd.memoryRangecomBoBox.setEnabled(false);
-			mainWnd.searchResultLabel.setText("搜索结果:");
-			//判断是内存扫描还是变化扫描
-			if(searchType==0)
-			{
-				mainWnd.statusLabel.setText("正在扫描进程"+mainWnd.currentProcess.getProcessName()+"请稍后...");
-				mainWnd.tableModel.setRowCount(0);
-				//进程ID
-				int pid = mainWnd.currentProcess.getPid();
-				//搜索的數據類型,0=INT 1=Short 2=long 3=float 4=double 5=byte
-				int searchDataType = mainWnd.searchDataType.getSelectedIndex();
-				//与搜索值比较 0等于,1大于,2小于
-				int equalsSearchValue = mainWnd.searchType.getSelectedIndex();
-				//搜索的开始地址
-				int startAddress = Integer.parseInt(mainWnd.memoryStartAddress.getText().trim().replace("0x", ""),16);
-				//搜索的结束地址
-				int endAddress = Integer.parseInt(mainWnd.memoryEndAddress.getText().trim().replace("0x", ""),16);
-				//更新TABLE列表
-				tableValueUpdate = new JTableValueUpdate(mainWnd,memorySearch);
-				tableValueUpdate.start();
-				//清空Table列表
-				mainWnd.tableModel.setRowCount(0);
-				//执行搜索
-				ExecuteResult executeResult = memorySearch.search(pid, searchValue, searchDataType,equalsSearchValue,startAddress,endAddress);
-				//结束TABLE更新线程
-				tableValueUpdate.stopRun();
-				tableValueUpdate.join();
-				if(executeResult.getLastError()!=0)
-				{ 
-					JOptionPane.showMessageDialog(mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-					mainWnd.resetWindow();
-					return;
-				}
-				mainWnd.statusLabel.setText("进程"+mainWnd.currentProcess.getProcessName()+"扫描完成!");
-			}
-			else if(searchType==1)
-			{
-				mainWnd.statusLabel.setText("正在扫描进程"+mainWnd.currentProcess.getProcessName()+"变化的内存值,请稍后...");
-				mainWnd.lastSearchButton.setEnabled(false);
-				//获取当前Table列表搜索的内存的值
-				DefaultTableModel model = mainWnd.tableModel;
-				if(model.getRowCount()==0)
-				{
-					JOptionPane.showMessageDialog(mainWnd, "搜索列表为空!", "ERROR", JOptionPane.ERROR_MESSAGE);
-					mainWnd.resetWindow();
-					return;
-				}
-				List<MemoryValue> searchValue = new ArrayList<MemoryValue>();
-				for(int i = 0;i<model.getRowCount();i++)
-				{
-					MemoryValue value = new MemoryValue();
-					value.setAddress16(model.getValueAt(i, 0).toString());
-					value.setValue(model.getValueAt(i, 1).toString());
-					searchValue.add(value);
-				}
-				//清空Table列表
-				mainWnd.tableModel.setRowCount(0);
-				//进程ID
-				int pid = mainWnd.currentProcess.getPid();
-				//搜索的數據類型,0=INT 1=Short 2=long 3=float 4=double 5=byte
-				int searchDataType = mainWnd.searchDataType.getSelectedIndex();
-				//更新TABLE列表
-				tableValueUpdate = new JTableValueUpdate(mainWnd,memorySearch);
-				tableValueUpdate.start();
-				//开始搜索
-				ExecuteResult executeResult = memorySearch.search(pid, searchValue, searchDataType);
-				//结束TABLE更新线程
-				tableValueUpdate.stopRun();
-				tableValueUpdate.join();
-				if(executeResult.getLastError()!=0)
-				{
-					JOptionPane.showMessageDialog(mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-					mainWnd.resetWindow();
-					return;
-				}
-				//判断Table是否存在变化的值
-				if(model.getRowCount()==0)
-				{
-					mainWnd.statusLabel.setText("进程"+mainWnd.currentProcess.getProcessName()+"扫描完成,没有发现变化值!");
-					//恢复Table列表为搜索前的值
-					for(MemoryValue value:searchValue)
-					{
-						model.addRow(new String[]{value.getAddress16(),value.getValue()});
-					}
-				}
-				else
-				{
-					mainWnd.statusLabel.setText("进程"+mainWnd.currentProcess.getProcessName()+"扫描完成!");
-				}
-			}
-			//界面显示处理
-			mainWnd.stopButton.setVisible(false);
-			mainWnd.firstSearchButton.setEnabled(true);
-			mainWnd.lastSearchButton.setEnabled(true);
-			mainWnd.writeMemoryButton.setEnabled(true);
-			mainWnd.killButton.setEnabled(true);
-			mainWnd.resetButton.setEnabled(true);
-			mainWnd.progressBar.setIndeterminate(false);
-			mainWnd.memoryRangecomBoBox.setEnabled(true);
-		} 
-		catch (Exception e) 
-		{
-			mainWnd.resetWindow();
-			JOptionPane.showMessageDialog(mainWnd, "搜索线程异常信息:"+e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-		}
-	}
-	
-	//任务终止
-	@SuppressWarnings("deprecation")
-	public boolean stopRun()
-	{
-		try
-		{
-			stop();
-			join();
-			tableValueUpdate.stopRun();
-			tableValueUpdate.join();
-			return true;
-		}
-		catch (InterruptedException e) 
-		{
-			e.printStackTrace();
-		}
-		return false;
-	}
+ **/
+public class MemorySearchThread extends Thread {
+    private MainWnd mainWnd;
+    private MemorySearchImpl memorySearch = null;
+    private String searchValue = "0";
+    private int searchType = 0;//0代表内存搜索,1代表搜索变动
+    public JTableValueUpdate tableValueUpdate;//列表更新Table线程
+
+    public MemorySearchThread(MainWnd mainWnd, String searchValue, int searchType) {
+        this.mainWnd = mainWnd;
+        this.memorySearch = new MemorySearchImpl();
+        this.searchValue = searchValue;
+        this.searchType = searchType;
+    }
+
+    public void run() {
+        try {
+            //界面显示处理
+            mainWnd.firstSearchButton.setEnabled(false);
+            mainWnd.searchDataType.setEnabled(false);
+            mainWnd.killButton.setEnabled(false);
+            mainWnd.writeMemoryButton.setEnabled(false);
+            mainWnd.resetButton.setEnabled(false);
+            mainWnd.stopButton.setVisible(true);
+            mainWnd.progressBar.setIndeterminate(true);
+            mainWnd.memoryRangecomBoBox.setEnabled(false);
+            mainWnd.searchResultLabel.setText("搜索结果:");
+            //判断是内存扫描还是变化扫描
+            if (searchType == 0) {
+                mainWnd.statusLabel.setText("正在扫描进程" + mainWnd.currentProcess.getProcessName() + "请稍后...");
+                mainWnd.tableModel.setRowCount(0);
+                //进程ID
+                int pid = mainWnd.currentProcess.getPid();
+                //搜索的數據類型,0=INT 1=Short 2=long 3=float 4=double 5=byte
+                int searchDataType = mainWnd.searchDataType.getSelectedIndex();
+                //与搜索值比较 0等于,1大于,2小于
+                int equalsSearchValue = mainWnd.searchType.getSelectedIndex();
+                //搜索的开始地址
+                int startAddress = Integer.parseInt(mainWnd.memoryStartAddress.getText().trim().replace("0x", ""), 16);
+                //搜索的结束地址
+                int endAddress = Integer.parseInt(mainWnd.memoryEndAddress.getText().trim().replace("0x", ""), 16);
+                //更新TABLE列表
+                tableValueUpdate = new JTableValueUpdate(mainWnd, memorySearch);
+                tableValueUpdate.start();
+                //清空Table列表
+                mainWnd.tableModel.setRowCount(0);
+                //执行搜索
+                ExecuteResult executeResult = memorySearch.search(pid, searchValue, searchDataType, equalsSearchValue, startAddress, endAddress);
+                //结束TABLE更新线程
+                tableValueUpdate.stopRun();
+                tableValueUpdate.join();
+                if (executeResult.getLastError() != 0) {
+                    JOptionPane.showMessageDialog(mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+                    mainWnd.resetWindow();
+                    return;
+                }
+                mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getProcessName() + "扫描完成!");
+            } else if (searchType == 1) {
+                mainWnd.statusLabel.setText("正在扫描进程" + mainWnd.currentProcess.getProcessName() + "变化的内存值,请稍后...");
+                mainWnd.lastSearchButton.setEnabled(false);
+                //获取当前Table列表搜索的内存的值
+                DefaultTableModel model = mainWnd.tableModel;
+                if (model.getRowCount() == 0) {
+                    JOptionPane.showMessageDialog(mainWnd, "搜索列表为空!", "ERROR", JOptionPane.ERROR_MESSAGE);
+                    mainWnd.resetWindow();
+                    return;
+                }
+                List<MemoryValue> searchValue = new ArrayList<MemoryValue>();
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    MemoryValue value = new MemoryValue();
+                    value.setAddress16(model.getValueAt(i, 0).toString());
+                    value.setValue(model.getValueAt(i, 1).toString());
+                    searchValue.add(value);
+                }
+                //清空Table列表
+                mainWnd.tableModel.setRowCount(0);
+                //进程ID
+                int pid = mainWnd.currentProcess.getPid();
+                //搜索的數據類型,0=INT 1=Short 2=long 3=float 4=double 5=byte
+                int searchDataType = mainWnd.searchDataType.getSelectedIndex();
+                //更新TABLE列表
+                tableValueUpdate = new JTableValueUpdate(mainWnd, memorySearch);
+                tableValueUpdate.start();
+                //开始搜索
+                ExecuteResult executeResult = memorySearch.search(pid, searchValue, searchDataType);
+                //结束TABLE更新线程
+                tableValueUpdate.stopRun();
+                tableValueUpdate.join();
+                if (executeResult.getLastError() != 0) {
+                    JOptionPane.showMessageDialog(mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+                    mainWnd.resetWindow();
+                    return;
+                }
+                //判断Table是否存在变化的值
+                if (model.getRowCount() == 0) {
+                    mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getProcessName() + "扫描完成,没有发现变化值!");
+                    //恢复Table列表为搜索前的值
+                    for (MemoryValue value : searchValue) {
+                        model.addRow(new String[]{value.getAddress16(), value.getValue()});
+                    }
+                } else {
+                    mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getProcessName() + "扫描完成!");
+                }
+            }
+            //界面显示处理
+            mainWnd.stopButton.setVisible(false);
+            mainWnd.firstSearchButton.setEnabled(true);
+            mainWnd.lastSearchButton.setEnabled(true);
+            mainWnd.writeMemoryButton.setEnabled(true);
+            mainWnd.killButton.setEnabled(true);
+            mainWnd.resetButton.setEnabled(true);
+            mainWnd.progressBar.setIndeterminate(false);
+            mainWnd.memoryRangecomBoBox.setEnabled(true);
+        } catch (Exception e) {
+            mainWnd.resetWindow();
+            JOptionPane.showMessageDialog(mainWnd, "搜索线程异常信息:" + e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    //任务终止
+    @SuppressWarnings("deprecation")
+    public boolean stopRun() {
+        try {
+            stop();
+            join();
+            tableValueUpdate.stopRun();
+            tableValueUpdate.join();
+            return true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
 
 /**
  * JTabele显示更新线程,该线程监听MemorySearchImpl类中searchResult的SIZE变化
- * **/
-class JTableValueUpdate extends Thread
-{
-	private MemorySearchImpl memorySearchImpl;
-	private MainWnd mainWnd;
-	private boolean isRun = true;
-	
-	public JTableValueUpdate(MainWnd mainWnd,MemorySearchImpl memorySearchImpl)
-	{
-		this.memorySearchImpl = memorySearchImpl;
-		this.mainWnd = mainWnd;
-	}
-	
-	public void run()
-	{
-		try 
-		{
-			int size = 0;
-			while(isRun)
-			{
-				//如果memorySearchImpl中的searchResult的SIZE发生变化,就更新到Table列表
-				if(memorySearchImpl.searchResult.size()!=size)
-				{
-					size = memorySearchImpl.searchResult.size();
-					MemoryValue result = memorySearchImpl.searchResult.get(size-1);
-					mainWnd.tableModel.addRow(new String[]{result.getAddress16(),result.getValue()});
-				}
-				Thread.sleep(100);
-			}
-			//检查是否有遗漏添加的,如果有遗漏,重新填充Table列表
-			if(memorySearchImpl.searchResult.size()!=mainWnd.tableModel.getRowCount())
-			{
-				//清空Table列表
-				mainWnd.tableModel.setRowCount(0);
-				for(MemoryValue temp:memorySearchImpl.searchResult)
-				{
-					mainWnd.tableModel.addRow(new String[]{temp.getAddress16(),temp.getValue()});
-				}
-			}
-			//显示搜索结果
-			mainWnd.searchResultLabel.setText("搜索结果:共计检索内存"+memorySearchImpl.memoryScore+"条,符合条件"+mainWnd.tableModel.getRowCount()+"条记录!");
-		} 
-		catch (Exception e) 
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	public void stopRun()
-	{
-		isRun = false;
-	}
+ **/
+class JTableValueUpdate extends Thread {
+    private MemorySearchImpl memorySearchImpl;
+    private MainWnd mainWnd;
+    private boolean isRun = true;
+
+    public JTableValueUpdate(MainWnd mainWnd, MemorySearchImpl memorySearchImpl) {
+        this.memorySearchImpl = memorySearchImpl;
+        this.mainWnd = mainWnd;
+    }
+
+    public void run() {
+        try {
+            int size = 0;
+            while (isRun) {
+                //如果memorySearchImpl中的searchResult的SIZE发生变化,就更新到Table列表
+                if (memorySearchImpl.searchResult.size() != size) {
+                    size = memorySearchImpl.searchResult.size();
+                    MemoryValue result = memorySearchImpl.searchResult.get(size - 1);
+                    mainWnd.tableModel.addRow(new String[]{result.getAddress16(), result.getValue()});
+                }
+                Thread.sleep(100);
+            }
+            //检查是否有遗漏添加的,如果有遗漏,重新填充Table列表
+            if (memorySearchImpl.searchResult.size() != mainWnd.tableModel.getRowCount()) {
+                //清空Table列表
+                mainWnd.tableModel.setRowCount(0);
+                for (MemoryValue temp : memorySearchImpl.searchResult) {
+                    mainWnd.tableModel.addRow(new String[]{temp.getAddress16(), temp.getValue()});
+                }
+            }
+            //显示搜索结果
+            mainWnd.searchResultLabel.setText("搜索结果:共计检索内存" + memorySearchImpl.memoryScore + "条,符合条件" + mainWnd.tableModel.getRowCount() + "条记录!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stopRun() {
+        isRun = false;
+    }
 }
