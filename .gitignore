@@ -1,0 +1,82 @@
+*.class
+*.lnk
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.war
+*.ear
+.vertx
+.apt_generated/
+data/*
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+.factorypath
+logs
+log/*
+logs/*
+/*.log.*
+*.log
+build
+db*.properties
+.checkstyle
+.cache
+.DS_Store
+
+upload
+backups
+backups/*
+rebel.xml
+
+node_modules/*
+/**/node_modules
+/node_modules
+node_modules
+# use glob syntax.
+syntax: glob
+*.ser
+*.class
+*~
+*.bak
+*.off
+*.old
+upload
+# eclipse conf file
+.settings
+.classpath
+.project
+.manager
+# idea
+*.iml
+*.iws
+*.ipr
+/.idea
+.idea
+# building
+bin
+target
+target/*
+target/
+/target
+sdklog
+null
+#tmp*
+#temp*
+dist
+test-output
+build.log
+# other scm
+.svn
+.CVS
+.hg*
+# switch to regexp syntax.
+# syntax: regexp
+# ^\.pc/ 
+.externalToolBuilders
+
+## python
+__pycache__
+out
+!deploy/bin
