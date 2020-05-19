@@ -7,7 +7,7 @@ package com.memory.entity;
  * <p>
  * 用于保存进程名字与进程ID的类
  **/
-public class Process {
+public class Process implements Comparable<Process> {
     private String processName;
     private int pid;
 
@@ -28,6 +28,10 @@ public class Process {
     }
 
     public String toString() {
-        return " " + processName;
+        return pid +"-------"+ processName;
+    }
+
+    public int compareTo(Process o) {
+        return o.processName.compareTo(this.processName);
     }
 }

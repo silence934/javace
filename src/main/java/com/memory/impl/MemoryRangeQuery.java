@@ -9,6 +9,7 @@ import com.memory.structure.MODULEENTRY32;
 import com.memory.structure.SYSTEM_INFO;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 内存范围查询实现类
@@ -16,6 +17,7 @@ import com.sun.jna.ptr.IntByReference;
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
  */
+@Slf4j
 public class MemoryRangeQuery {
     /**
      * 查询进程在内存中的开始地址与结束地址
@@ -69,6 +71,7 @@ public class MemoryRangeQuery {
             lastError = Kernel32_DLL.INSTANCE.GetLastError();
             if (range.getMinValue() == 0 && lastError != 0) {
                 executeResult.setLastError(lastError);
+                log.error("Module32Next失败,错误代码:" + lastError);
                 executeResult.setMessage("Module32Next失败,错误代码:" + lastError);
             }
 

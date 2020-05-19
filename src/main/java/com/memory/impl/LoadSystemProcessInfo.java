@@ -1,6 +1,7 @@
 package com.memory.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.memory.interfaces.Kernel32_DLL;
@@ -8,6 +9,7 @@ import com.memory.quantity.CreateToolhelp32Snapshot;
 import com.memory.structure.PROCESSENTRY32;
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.Process;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 获取系统进程实现类
@@ -15,11 +17,14 @@ import com.memory.entity.Process;
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
  **/
+@Slf4j
 public class LoadSystemProcessInfo {
     /**
      * 得到系统进程列表
      */
     public ExecuteResult getProcess() {
+
+
         ExecuteResult executeResult = new ExecuteResult();
         //获取结果集
         List<Process> list = new ArrayList<Process>();
@@ -29,13 +34,15 @@ public class LoadSystemProcessInfo {
         int lastError = Kernel32_DLL.INSTANCE.GetLastError();
         if (processHandle == 0 || lastError != 0) {
             executeResult.setLastError(lastError);
+            log.error("获取系统进程信息失败,错误代码:" + lastError);
             executeResult.setMessage("获取系统进程信息失败,错误代码:" + lastError);
-            System.out.println("获取系统进程信息失败,错误代码:" + lastError);
             return executeResult;
         }
         try {
             //创建进程结构体,用于保存进程的相关信息,具体参考com.memory.entity.Process中的描述
             PROCESSENTRY32 lppe = new PROCESSENTRY32();
+
+
             //根据快照句柄遍历系统进程
             while (Kernel32_DLL.INSTANCE.Process32Next(processHandle, lppe)) {
                 Process temp = new Process();
@@ -43,11 +50,15 @@ public class LoadSystemProcessInfo {
                 temp.setPid(lppe.th32ProcessID);
                 list.add(temp);
             }
+
+            Collections.sort(list);
+
             if (list.size() != 0) {
                 executeResult.setValue(list);
             } else {
                 lastError = Kernel32_DLL.INSTANCE.GetLastError();
                 executeResult.setLastError(lastError);
+                log.error("获取系统进程信息失败2,错误代码:" + lastError);
                 executeResult.setMessage("获取系统进程信息失败,错误代码:" + lastError);
             }
         } finally {
