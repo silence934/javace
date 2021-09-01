@@ -1,6 +1,7 @@
 package com.memory.wnd;
 
 import com.jtattoo.plaf.aluminium.AluminiumLookAndFeel;
+import com.memory.entity.MemoryRange;
 import com.memory.entity.Process;
 import com.memory.event.MainWndEvent;
 
@@ -36,6 +37,7 @@ public class MainWnd extends JFrame {
     public JTextField memoryStartAddress;
     public JTextField memoryEndAddress;
     public JComboBox memoryRangecomBoBox;
+    public MemoryRange range;
     private MainWndEvent event = new MainWndEvent(this);
 
     public MainWnd() {
@@ -99,7 +101,7 @@ public class MainWnd extends JFrame {
         searchType.setBounds(270, 139, 166, 21);
         getContentPane().add(searchType);
 
-        JLabel lblNewLabel_2 = new JLabel("\u6570\u636E\u7C7B\u578B:");
+        JLabel lblNewLabel_2 = new JLabel("数据类型:");
         lblNewLabel_2.setBounds(213, 170, 53, 15);
         getContentPane().add(lblNewLabel_2);
 

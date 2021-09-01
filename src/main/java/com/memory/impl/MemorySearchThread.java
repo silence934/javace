@@ -4,6 +4,7 @@ import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryValue;
 import com.memory.wnd.DefaultTableModel;
 import com.memory.wnd.MainWnd;
+import com.sun.jna.Pointer;
 
 import javax.swing.*;
 import java.util.ArrayList;
@@ -57,9 +58,9 @@ public class MemorySearchThread extends Thread {
                 //与搜索值比较 0等于,1大于,2小于
                 int equalsSearchValue = mainWnd.searchType.getSelectedIndex();
                 //搜索的开始地址
-                int startAddress = Integer.parseInt(mainWnd.memoryStartAddress.getText().trim().replace("0x", ""), 16);
+                Pointer startAddress = mainWnd.range.getMinValue();
                 //搜索的结束地址
-                int endAddress = Integer.parseInt(mainWnd.memoryEndAddress.getText().trim().replace("0x", ""), 16);
+                Pointer endAddress = mainWnd.range.getMaxValue();
                 //更新TABLE列表
                 tableValueUpdate = new JTableValueUpdate(mainWnd, memorySearch);
                 tableValueUpdate.start();

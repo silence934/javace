@@ -81,8 +81,9 @@ public class ProcessChooseWndEvent {
                         return;
                     }
                     MemoryRange range = (MemoryRange) executeResult.getValue();
-                    processChooseWnd.mainWnd.memoryStartAddress.setText("0x" + Long.toString(range.getMinValue(), 16).toUpperCase());
-                    processChooseWnd.mainWnd.memoryEndAddress.setText("0x" + Long.toString(range.getMaxValue(), 16).toUpperCase());
+                    processChooseWnd.mainWnd.memoryStartAddress.setText(range.getMinValue().toString());
+                    processChooseWnd.mainWnd.memoryEndAddress.setText(range.getMaxValue().toString());
+                    processChooseWnd.mainWnd.range=range;
                     //界面显示处理
                     processChooseWnd.mainWnd.memoryRangecomBoBox.setEnabled(true);
                     processChooseWnd.mainWnd.statusLabel.setText(p.getProcessName());

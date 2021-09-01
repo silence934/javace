@@ -32,21 +32,18 @@ public class MainWndEvent {
      * 打开进程按钮
      **/
     public ActionListener openProcessButton() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //判断当前是否正在执行扫描动作L
-                if (memorySearchThread != null
-                        && memorySearchThread.isAlive()) {
-                    JOptionPane.showMessageDialog(mainWnd, "扫描进行中,请等待扫描完成!", "提示", JOptionPane.QUESTION_MESSAGE);
-                    return;
-                }
-                //对象NULL值判断
-                if (processChooseWnd == null) {
-                    processChooseWnd = new ProcessChooseWnd(mainWnd);
-                }
-                processChooseWnd.setVisible(true);
+        return e -> {
+            //判断当前是否正在执行扫描动作L
+            if (memorySearchThread != null
+                    && memorySearchThread.isAlive()) {
+                JOptionPane.showMessageDialog(mainWnd, "扫描进行中,请等待扫描完成!", "提示", JOptionPane.QUESTION_MESSAGE);
+                return;
             }
+            //对象NULL值判断
+            if (processChooseWnd == null) {
+                processChooseWnd = new ProcessChooseWnd(mainWnd);
+            }
+            processChooseWnd.setVisible(true);
         };
     }
 
@@ -54,57 +51,63 @@ public class MainWndEvent {
      * 内存搜索按钮点击事件
      **/
     public ActionListener firstSearchButton() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //如果用户没有选择进程,那么这个值就是NULL
-                if (mainWnd.currentProcess == null) {
-                    JOptionPane.showMessageDialog(mainWnd, "请先打开进程!", "ERROR", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                //获取用户输入的查询值
-                String text = mainWnd.searchText.getText().trim();
-                //判断用户输入的值是否合法
-                if (!text.matches("\\-{0,1}[0-9]+\\.*[0-9]*")) {
-                    JOptionPane.showMessageDialog(mainWnd, "搜索值输入错误!", "ERROR", JOptionPane.ERROR_MESSAGE);
-                    mainWnd.searchText.getCaret().setVisible(true);
-                    mainWnd.searchText.requestFocus();
-                    mainWnd.searchText.selectAll();
-                    return;
-                }
-                //判断内存地址范围是否合法,这个判断只针对自定义内存范围
-                if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 2) {
-                    String startAddress = mainWnd.memoryStartAddress.getText().trim();
-                    String endAddress = mainWnd.memoryEndAddress.getText().trim();
-                    //是否为空
-                    if (startAddress.length() < 1 || endAddress.length() < 1) {
-                        JOptionPane.showMessageDialog(mainWnd, "请输入有效的内存范围!", "ERROR", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    //是否符合格式
-                    if ((!startAddress.matches("0x{1}[0-9a-fA-F]+")) || (!endAddress.matches("0x{1}[0-9a-fA-F]+"))) {
-                        JOptionPane.showMessageDialog(mainWnd, "内存地址格式错误,请检查是否以0x开头的十六进制的值!\n注意:0x中的x应该为小写!", "ERROR", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    //长度是否符合
-                    if (startAddress.replace("0x", "").length() > 9 || endAddress.replace("0x", "").length() > 9) {
-                        JOptionPane.showMessageDialog(mainWnd, "搜索的内存地址超出范围！", "ERROR", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    //范围是否符合
-                    int startAddressInt = Integer.parseInt(startAddress.replace("0x", ""), 16);
-                    int endAddressInt = Integer.parseInt(endAddress.replace("0x", ""), 16);
-                    if (startAddressInt >= endAddressInt) {
-                        JOptionPane.showMessageDialog(mainWnd, "开始的内存地址不能大于或等于结束的内存地址！", "ERROR", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                }
-                //执行查询线程,0代表内存搜索
-                memorySearchThread = new MemorySearchThread(mainWnd, text, 0);
-                memorySearchThread.start();
+        return e -> {
+            //如果用户没有选择进程,那么这个值就是NULL
+            if (mainWnd.currentProcess == null) {
+                JOptionPane.showMessageDialog(mainWnd, "请先打开进程!", "ERROR", JOptionPane.ERROR_MESSAGE);
+                return;
             }
+            //获取用户输入的查询值
+            String text = mainWnd.searchText.getText().trim();
+
+            checkTest(text);
+
+            //执行查询线程,0代表内存搜索
+            memorySearchThread = new MemorySearchThread(mainWnd, text, 0);
+            memorySearchThread.start();
         };
     }
+
+
+
+    private void checkTest(String text){
+        //判断用户输入的值是否合法
+        if (!text.matches("-?[0-9]+\\.*[0-9]*")) {
+            JOptionPane.showMessageDialog(mainWnd, "搜索值输入错误!", "ERROR", JOptionPane.ERROR_MESSAGE);
+            mainWnd.searchText.getCaret().setVisible(true);
+            mainWnd.searchText.requestFocus();
+            mainWnd.searchText.selectAll();
+            return;
+        }
+        //判断内存地址范围是否合法,这个判断只针对自定义内存范围
+        if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 2) {
+            String startAddress = mainWnd.memoryStartAddress.getText().trim();
+            String endAddress = mainWnd.memoryEndAddress.getText().trim();
+            //是否为空
+            if (startAddress.length() < 1 || endAddress.length() < 1) {
+                JOptionPane.showMessageDialog(mainWnd, "请输入有效的内存范围!", "ERROR", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            //是否符合格式
+            if ((!startAddress.matches("0x{1}[0-9a-fA-F]+")) || (!endAddress.matches("0x{1}[0-9a-fA-F]+"))) {
+                JOptionPane.showMessageDialog(mainWnd, "内存地址格式错误,请检查是否以0x开头的十六进制的值!\n注意:0x中的x应该为小写!", "ERROR", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            //长度是否符合
+            if (startAddress.replace("0x", "").length() > 9 || endAddress.replace("0x", "").length() > 9) {
+                JOptionPane.showMessageDialog(mainWnd, "搜索的内存地址超出范围！", "ERROR", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            //范围是否符合
+            int startAddressInt = Integer.parseInt(startAddress.replace("0x", ""), 16);
+            int endAddressInt = Integer.parseInt(endAddress.replace("0x", ""), 16);
+            if (startAddressInt >= endAddressInt) {
+                JOptionPane.showMessageDialog(mainWnd, "开始的内存地址不能大于或等于结束的内存地址！", "ERROR", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+    }
+
 
     /**
      * 在次搜索按钮点击事件
@@ -294,8 +297,8 @@ public class MainWndEvent {
                         return;
                     }
                     MemoryRange range = (MemoryRange) executeResult.getValue();
-                    processChooseWnd.mainWnd.memoryStartAddress.setText("0x" + Long.toString(range.getMinValue(), 16).toUpperCase());
-                    processChooseWnd.mainWnd.memoryEndAddress.setText("0x" + Long.toString(range.getMaxValue(), 16).toUpperCase());
+                    processChooseWnd.mainWnd.memoryStartAddress.setText(range.getMinValue().toString());
+                    processChooseWnd.mainWnd.memoryEndAddress.setText(range.getMaxValue().toString());
                 } else if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 1) {
                     MemoryRangeQuery query = new MemoryRangeQuery();
                     ExecuteResult executeResult = query.querySystemRange();
@@ -304,8 +307,8 @@ public class MainWndEvent {
                         return;
                     }
                     MemoryRange range = (MemoryRange) executeResult.getValue();
-                    mainWnd.memoryStartAddress.setText("0x" + Long.toString(range.getMinValue(), 16).toUpperCase());
-                    mainWnd.memoryEndAddress.setText("0x" + Long.toString(range.getMaxValue(), 16).toUpperCase());
+                    mainWnd.memoryStartAddress.setText(range.getMinValue().toString());
+                    mainWnd.memoryEndAddress.setText(range.getMaxValue().toString());
                 } else if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 2) {
                     mainWnd.memoryStartAddress.setEditable(true);
                     mainWnd.memoryEndAddress.setEditable(true);

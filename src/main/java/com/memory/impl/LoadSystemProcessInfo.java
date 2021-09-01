@@ -3,6 +3,7 @@ package com.memory.impl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.memory.interfaces.Kernel32_DLL;
 import com.memory.quantity.CreateToolhelp32Snapshot;
@@ -10,6 +11,9 @@ import com.memory.structure.PROCESSENTRY32;
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.Process;
 import lombok.extern.slf4j.Slf4j;
+import oshi.SystemInfo;
+import oshi.software.os.OSProcess;
+import oshi.software.os.OperatingSystem;
 
 /**
  * 获取系统进程实现类
@@ -22,8 +26,7 @@ public class LoadSystemProcessInfo {
     /**
      * 得到系统进程列表
      */
-    public ExecuteResult getProcess() {
-
+    public ExecuteResult getProcess1() {
 
         ExecuteResult executeResult = new ExecuteResult();
         //获取结果集
@@ -65,6 +68,28 @@ public class LoadSystemProcessInfo {
             //释放句柄资源
             Kernel32_DLL.INSTANCE.CloseHandle(processHandle);
         }
+        return executeResult;
+    }
+
+
+
+    public ExecuteResult getProcess(){
+        SystemInfo systemInfo = new SystemInfo();
+        OperatingSystem operatingSystem = systemInfo.getOperatingSystem();
+
+        List<OSProcess> processes = operatingSystem.getProcesses();
+
+
+        ExecuteResult executeResult = new ExecuteResult();
+
+        executeResult.setValue(processes.stream().filter(p->p.getName().contains("Plants")).map(p->{
+            Process temp = new Process();
+            temp.setProcessName(p.getName());
+            temp.setPid(p.getProcessID());
+            return temp;
+        }).collect(Collectors.toList()));
+
+
         return executeResult;
     }
 }

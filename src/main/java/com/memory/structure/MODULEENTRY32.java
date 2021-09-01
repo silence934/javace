@@ -4,7 +4,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
+import com.sun.jna.platform.win32.Tlhelp32;
 
 /**
  * 作者:Code菜鸟
@@ -36,13 +38,13 @@ import com.sun.jna.Structure;
  **/
 public class MODULEENTRY32 extends Structure {
     public int dwSize;
-    public int th32ModuleID;
-    public int th32ProcessID;
-    public int GlblcntUsage;
-    public int ProccntUsage;
-    public int modBaseAddr;
-    public int modBaseSize;
-    public int hModule;
+    public long th32ModuleID;
+    public long th32ProcessID;
+    public long GlblcntUsage;
+    public long ProccntUsage;
+    public long modBaseAddr;
+    public long modBaseSize;
+    public long hModule;
     //MAX_MODUE_NAME32常量255
     public char[] szModule = new char[256];
     //这个260长度是C++ windef.h文件中定义的常量#define MAX_PATH 260

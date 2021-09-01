@@ -8,8 +8,13 @@ import com.memory.quantity.VirtualProtect;
 import com.memory.structure.MEMORY_BASIC_INFORMATION;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.BaseTSD;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.ptr.IntByReference;
 
 import java.util.*;
+
 
 /**
  * 内存搜索实现类
@@ -24,11 +29,8 @@ public class MemorySearchImpl {
     //保存搜索
     public List<MemoryValue> searchResult = Collections.synchronizedList(new ArrayList<MemoryValue>());
 
-    //保存查询内存结果信息的结构体类
-    private MEMORY_BASIC_INFORMATION memoryInfo = new MEMORY_BASIC_INFORMATION();
 
-    //查询结果的大小
-    private int size = memoryInfo.size();
+
 
     /**
      * 值搜索
@@ -40,14 +42,18 @@ public class MemorySearchImpl {
      * endBaseAddr 搜索结束的内存基址
      * increasing 搜索地址的递增量
      **/
-    public ExecuteResult search(int pid, String searchValue, int searchDataType, int equalsSearchValue, int startBaseAddr, int endBaseAddr) {
+    public ExecuteResult search(int pid, String searchValue, int searchDataType, int equalsSearchValue, Pointer startBaseAddr, Pointer endBaseAddr) {
         if (searchResult.size() != 0) {
             searchResult.clear();
         }
         ExecuteResult executeResult = new ExecuteResult();
         memoryScore = 0;
         //根据进程ID,打开进程,返回进程句柄
-        int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
+        //int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
+
+        WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS , false, pid);
+
+
         //判断进程句柄是否打开成功
         int lastError = Kernel32_DLL.INSTANCE.GetLastError();
         executeResult.setLastError(lastError);
@@ -58,146 +64,74 @@ public class MemorySearchImpl {
             executeResult.setMessage("无法打开该进程,OpenProcess函数返回错误码:" + lastError);
             return executeResult;
         }
+
+        //保存查询内存结果信息的结构体类
+        //MEMORY_BASIC_INFORMATION memoryInfo = new MEMORY_BASIC_INFORMATION();
+
+        WinNT.MEMORY_BASIC_INFORMATION information=new WinNT.MEMORY_BASIC_INFORMATION();
         try {
             //根据基址遍历内存
-            while (startBaseAddr <= endBaseAddr) {
+            int m=0,n=0;
+            while (Pointer.nativeValue(startBaseAddr) <= Pointer.nativeValue(endBaseAddr)) {
+                m++;
                 //读取内存信息
-                int vqe = Kernel32_DLL.INSTANCE.VirtualQueryEx(handle, startBaseAddr, memoryInfo, size);
-                if (vqe == 0) {
+                 // int vqe = Kernel32_DLL.INSTANCE.VirtualQueryEx(handle, startBaseAddr, memoryInfo, size);
+
+                BaseTSD.SIZE_T size_t = Kernel32.INSTANCE.VirtualQueryEx(hProcess,
+                        startBaseAddr, information, new BaseTSD.SIZE_T(information.size()));
+
+                if (size_t.intValue() == 0) {
                     break;
                 }
                 //判断内存是否已提交,非空闲内存
-                if (memoryInfo.state == MEMORY_BASIC_INFORMATION.MEM_COMMIT) {
+                if (information.state.intValue() == WinNT.MEM_COMMIT) {
                     //更改内存保护属性为可写可读,成功返回TRUE,执行这个函数,OpenProcess函数必须为PROCESS_ALL_ACCESS
-                    boolean vpe = Kernel32_DLL.INSTANCE.VirtualProtectEx(handle, startBaseAddr, memoryInfo.regionSize, VirtualProtect.PAGE_READWRITE, memoryInfo.protect);
+                    boolean vpe = true;//Kernel32_DLL.INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()), Pointer.nativeValue(startBaseAddr), information.regionSize.intValue(), WinNT.PAGE_READWRITE, information.protect.intValue());
+
+                    int i1 = Kernel32_DLL.INSTANCE.GetLastError();
+                    System.out.println("error"+i1);
+
                     //判断内存是否可读可写
-                    if (vpe || memoryInfo.protect == MEMORY_BASIC_INFORMATION.PAGE_READWRITE) {
+                    if (vpe || information.protect.intValue() == WinNT.PAGE_READWRITE) {
+                        n++;
                         //声明一块内存空间,保存读取内存块的值,这个空间的大小与内存块大小相同
-                        Pointer buffer = new Memory(memoryInfo.regionSize);
+                        Pointer buffer = new Memory(information.regionSize.longValue());
+
                         //判断是否读取成功
-                        if (Kernel32_DLL.INSTANCE.ReadProcessMemory(handle, startBaseAddr, buffer, memoryInfo.regionSize, 0)) {
+                        if ( Kernel32.INSTANCE.ReadProcessMemory(hProcess, startBaseAddr, buffer,
+                                information.regionSize.intValue(), new IntByReference(0))) {
                             //对比的值
                             double searchValueDouble = Double.parseDouble(searchValue);
                             //根据搜索类型查找对应数据
-                            switch (searchDataType) {
-                                //查找整形int,4字节，所以i+=4
-                                case 0:
-                                    for (int i = 0; i < memoryInfo.regionSize; i += 4) {
-                                        double memoryValue = buffer.getInt(i);
-                                        //统计内存数量
-                                        memoryScore++;
-                                        //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                        if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                                (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                                (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
-                                            MemoryValue temp = new MemoryValue();
-                                            temp.setAddress(startBaseAddr + i);
-                                            temp.setAddress16("0x" + Long.toString((startBaseAddr + i), 16).toUpperCase());
-                                            temp.setValue(memoryValue + "");
-                                            searchResult.add(temp);
-                                        }
-                                    }
-                                    break;
-                                //查找短整形short,2字节，所以i+=2
-                                case 1:
-                                    for (int i = 0; i < memoryInfo.regionSize; i += 2) {
-                                        double memoryValue = buffer.getShort(i);
-                                        //统计内存数量
-                                        memoryScore++;
-                                        //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                        if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                                (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                                (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
-                                            MemoryValue temp = new MemoryValue();
-                                            temp.setAddress(startBaseAddr + i);
-                                            temp.setAddress16("0x" + Long.toString((startBaseAddr + i), 16).toUpperCase());
-                                            temp.setValue(memoryValue + "");
-                                            searchResult.add(temp);
-                                        }
-                                    }
-                                    break;
-                                //查找长整形Long,8字节，所以i+=8
-                                case 2:
-                                    for (int i = 0; i < memoryInfo.regionSize; i += 8) {
-                                        double memoryValue = buffer.getLong(i);
-                                        //统计内存数量
-                                        memoryScore++;
-                                        //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                        if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                                (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                                (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
-                                            MemoryValue temp = new MemoryValue();
-                                            temp.setAddress(startBaseAddr + i);
-                                            temp.setAddress16("0x" + Long.toString((startBaseAddr + i), 16).toUpperCase());
-                                            temp.setValue(memoryValue + "");
-                                            searchResult.add(temp);
-                                        }
-                                    }
-                                    break;
-                                //查找单精度浮点 float,4字节，所以i+=4
-                                case 3:
-                                    for (int i = 0; i < memoryInfo.regionSize; i += 4) {
-                                        double memoryValue = buffer.getFloat(i);
-                                        //统计内存数量
-                                        memoryScore++;
-                                        //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                        if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                                (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                                (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
-                                            MemoryValue temp = new MemoryValue();
-                                            temp.setAddress(startBaseAddr + i);
-                                            temp.setAddress16("0x" + Long.toString((startBaseAddr + i), 16).toUpperCase());
-                                            temp.setValue(memoryValue + "");
-                                            searchResult.add(temp);
-                                        }
-                                    }
-                                    break;
-                                //查找双精度浮点 double,8字节，所以i+=8
-                                case 4:
-                                    for (int i = 0; i < memoryInfo.regionSize; i += 8) {
-                                        double memoryValue = buffer.getDouble(i);
-                                        //统计内存数量
-                                        memoryScore++;
-                                        //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                        if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                                (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                                (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
-                                            MemoryValue temp = new MemoryValue();
-                                            temp.setAddress(startBaseAddr + i);
-                                            temp.setAddress16("0x" + Long.toString((startBaseAddr + i), 16).toUpperCase());
-                                            temp.setValue(memoryValue + "");
-                                            searchResult.add(temp);
-                                        }
-                                    }
-                                    break;
-                                //查找字节byte,1字节，所以i++
-                                case 5:
-                                    for (int i = 0; i < memoryInfo.regionSize; i++) {
-                                        double memoryValue = buffer.getByte(i);
-                                        //统计内存数量
-                                        memoryScore++;
-                                        //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                        if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                                (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                                (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
-                                            MemoryValue temp = new MemoryValue();
-                                            temp.setAddress(startBaseAddr + i);
-                                            temp.setAddress16("0x" + Long.toString((startBaseAddr + i), 16).toUpperCase());
-                                            temp.setValue(memoryValue + "");
-                                            searchResult.add(temp);
-                                        }
-                                    }
-                                    break;
-                                default:
+                            for (int i = 0; i < information.regionSize.intValue(); i += 4) {
+                                double memoryValue = buffer.getInt(i);
+                                //统计内存数量
+                                memoryScore++;
+                                //与搜索值相比较释放符合条件 0等于,1大于,2小于
+                                if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
+                                        (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
+                                        (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
+                                    MemoryValue temp = new MemoryValue();
+                                    temp.setAddress(Pointer.nativeValue(startBaseAddr) + i);
+                                    temp.setAddress16("0x" + Long.toString((Pointer.nativeValue(startBaseAddr) + i), 16).toUpperCase());
+                                    temp.setValue(memoryValue + "");
+                                    searchResult.add(temp);
+                                }
                             }
+                            break;
                         }
+
+
                         //释放内存
                         ReferenceFree.free(buffer);
                     }
                 }
                 //设置基地址偏移
-                startBaseAddr = (int) Pointer.nativeValue(memoryInfo.baseAddress) + memoryInfo.regionSize;
+                startBaseAddr = new Pointer( Pointer.nativeValue(information.baseAddress) + information.regionSize.longValue());
             }
+
+            System.out.println(m);
+            System.out.println(n);
         } catch (Exception e) {
             e.printStackTrace();
             executeResult.setLastError(-1);
@@ -205,7 +139,7 @@ public class MemorySearchImpl {
             return executeResult;
         } finally {
             //释放资源
-            Kernel32_DLL.INSTANCE.CloseHandle(handle);
+            Kernel32.INSTANCE.CloseHandle(hProcess);
         }
         return executeResult;
     }
