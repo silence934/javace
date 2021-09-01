@@ -1,22 +1,22 @@
 package com.memory.structure;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 作者:Code菜鸟
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
  * <p>
- * 该Java类用于描述PROCESSENTRY32结构体
+ * 该Java类用于描述 PROCESSENTRY32 结构体
  * <p>
  * Process32Next函数的第二个参数
  * <p>
- * LPPROCESSENTRY32结构的C++描述如下
+ * LPPROCESSENTRY32 结构的C++描述如下
  * <p>
  * typedef struct tagPROCESSENTRY32
  * {
@@ -57,11 +57,12 @@ public class PROCESSENTRY32 extends Structure {
         this.read();
     }
 
+    @Override
     protected List<String> getFieldOrder() {
-        return Arrays.asList(new String[]{"dwSize", "cntUsage",
-                "th32ProcessID", "th32DefaultHeapID", "th32ModuleID",
-                "cntThreads", "th32ParentProcessID", "pcPriClassBase",
-                "dwFlags", "szExeFile"});
+        return Arrays.asList("dwSize", "cntUsage",
+                             "th32ProcessID", "th32DefaultHeapID", "th32ModuleID",
+                             "cntThreads", "th32ParentProcessID", "pcPriClassBase",
+                             "dwFlags", "szExeFile");
     }
 
     public String getSzExeFileStr() {

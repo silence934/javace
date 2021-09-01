@@ -31,14 +31,14 @@ public class MemoryRangeQuery {
         //快照执行结果
         int lastError = Kernel32_DLL.INSTANCE.GetLastError();
         executeResult.setLastError(lastError);
+
+
         //判断结果
         if (lastError == 5) {
             executeResult.setMessage("无法打开进程,系统Debug权限获取失败,请以管理员方式重新运行程序!");
             return executeResult;
-        }
-        //如果为299，说明只有部分权限,判断该进程是否是64位进程
-        else if (lastError == 299) {
-            //声明INT指针，保存IsWow64Process返回的值
+        } else if (lastError == 299) {
+            //如果为299，说明只有部分权限,判断该进程是否是64位进程  声明INT指针，保存IsWow64Process返回的值
             IntByReference Wow64Process = new IntByReference();
             int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
             if (Kernel32_DLL.INSTANCE.IsWow64Process(handle, Wow64Process)) {
@@ -57,6 +57,8 @@ public class MemoryRangeQuery {
             executeResult.setMessage("无法打开该进程,OpenProcess函数返回错误码:" + lastError);
             return executeResult;
         }
+
+
         try {
             MODULEENTRY32 lpme = new MODULEENTRY32();
             if (Kernel32_DLL.INSTANCE.Module32First(handleModule, lpme)) {

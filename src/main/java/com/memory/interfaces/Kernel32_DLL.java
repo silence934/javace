@@ -22,7 +22,7 @@ public interface Kernel32_DLL extends StdCallLibrary {
      * 加载DLL文件库
      * 指定編碼為UNICODE_OPTIONS,不然要亂碼
      */
-    Kernel32_DLL INSTANCE = (Kernel32_DLL) Native.load("Kernel32",Kernel32_DLL.class, W32APIOptions.UNICODE_OPTIONS);
+    Kernel32_DLL INSTANCE = Native.load("Kernel32", Kernel32_DLL.class, W32APIOptions.UNICODE_OPTIONS);
 
     /**
      * 该函数用于获取系统进程列表,进程ID等快照信息,成功返回快照句柄

@@ -1,11 +1,5 @@
 package com.memory.impl;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryValue;
 import com.memory.interfaces.Kernel32_DLL;
@@ -15,6 +9,8 @@ import com.memory.structure.MEMORY_BASIC_INFORMATION;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 
+import java.util.*;
+
 /**
  * 内存搜索实现类
  * 作者:Code菜鸟
@@ -22,14 +18,17 @@ import com.sun.jna.Pointer;
  * CSDN博客:http://blog.csdn.net/qq969422014
  */
 public class MemorySearchImpl {
-    //保存查询内存结果信息的结构体类
-    private MEMORY_BASIC_INFORMATION memoryInfo = new MEMORY_BASIC_INFORMATION();
-    //查询结果的大小
-    private int size = memoryInfo.size();
     //统计内存扫描数量
     public int memoryScore = 0;
+
     //保存搜索
     public List<MemoryValue> searchResult = Collections.synchronizedList(new ArrayList<MemoryValue>());
+
+    //保存查询内存结果信息的结构体类
+    private MEMORY_BASIC_INFORMATION memoryInfo = new MEMORY_BASIC_INFORMATION();
+
+    //查询结果的大小
+    private int size = memoryInfo.size();
 
     /**
      * 值搜索
@@ -42,7 +41,9 @@ public class MemorySearchImpl {
      * increasing 搜索地址的递增量
      **/
     public ExecuteResult search(int pid, String searchValue, int searchDataType, int equalsSearchValue, int startBaseAddr, int endBaseAddr) {
-        if (searchResult.size() != 0) searchResult.clear();
+        if (searchResult.size() != 0) {
+            searchResult.clear();
+        }
         ExecuteResult executeResult = new ExecuteResult();
         memoryScore = 0;
         //根据进程ID,打开进程,返回进程句柄
@@ -62,7 +63,9 @@ public class MemorySearchImpl {
             while (startBaseAddr <= endBaseAddr) {
                 //读取内存信息
                 int vqe = Kernel32_DLL.INSTANCE.VirtualQueryEx(handle, startBaseAddr, memoryInfo, size);
-                if (vqe == 0) break;
+                if (vqe == 0) {
+                    break;
+                }
                 //判断内存是否已提交,非空闲内存
                 if (memoryInfo.state == MEMORY_BASIC_INFORMATION.MEM_COMMIT) {
                     //更改内存保护属性为可写可读,成功返回TRUE,执行这个函数,OpenProcess函数必须为PROCESS_ALL_ACCESS
@@ -185,6 +188,7 @@ public class MemorySearchImpl {
                                         }
                                     }
                                     break;
+                                default:
                             }
                         }
                         //释放内存
@@ -214,7 +218,9 @@ public class MemorySearchImpl {
      **/
     public ExecuteResult search(int pid, List<MemoryValue> addressList, int searchDataType) {
         ExecuteResult executeResult = new ExecuteResult();
-        if (searchResult.size() != 0) searchResult.clear();
+        if (searchResult.size() != 0) {
+            searchResult.clear();
+        }
         memoryScore = 0;
         //获取进程句柄
         int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);

@@ -50,7 +50,6 @@ public class MemoryWrite {
             switch (dataType) {
                 //整形int
                 case 0:
-                    size = 4;
                     updatePointer = new Memory(size);
                     updatePointer.setInt(0, Integer.parseInt(value));
                     break;
@@ -84,6 +83,7 @@ public class MemoryWrite {
                     updatePointer = new Memory(size);
                     updatePointer.setByte(0, Byte.parseByte(value));
                     break;
+                default:
             }
             //写入内存
             boolean writeResult = Kernel32_DLL.INSTANCE.WriteProcessMemory(hProcess, lpBaseAddress, updatePointer, size, 0);

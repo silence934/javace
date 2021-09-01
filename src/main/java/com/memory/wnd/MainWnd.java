@@ -1,20 +1,11 @@
 package com.memory.wnd;
 
-import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
-import javax.swing.JButton;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.JComboBox;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.UIManager;
-
+import com.jtattoo.plaf.aluminium.AluminiumLookAndFeel;
 import com.memory.entity.Process;
 import com.memory.event.MainWndEvent;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * 作者:Code菜鸟
@@ -47,31 +38,16 @@ public class MainWnd extends JFrame {
     public JComboBox memoryRangecomBoBox;
     private MainWndEvent event = new MainWndEvent(this);
 
-    public static void main(String[] args) throws Exception {
-        UIManager.setLookAndFeel("com.jtattoo.plaf.aluminium.AluminiumLookAndFeel");
-        UIManager.put("InternalFrame.titleFont", new java.awt.Font("宋体", 0, 12));
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    MainWnd window = new MainWnd();
-                    window.setVisible(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
     public MainWnd() {
         setTitle("內存修改工具1.0");
         setResizable(false);
         getContentPane().setLayout(null);
 
-        JLabel lblNewLabel = new JLabel("\u5F53\u524D\u8FDB\u7A0B:");
+        JLabel lblNewLabel = new JLabel("当前进程:");
         lblNewLabel.setBounds(10, 10, 56, 15);
         getContentPane().add(lblNewLabel);
 
-        statusLabel = new JLabel("\u6CA1\u6709\u9009\u62E9\u4EFB\u4F55\u8FDB\u7A0B");
+        statusLabel = new JLabel("没有选择任何进程");
         statusLabel.setBounds(66, 10, 272, 15);
         getContentPane().add(statusLabel);
 
@@ -88,7 +64,7 @@ public class MainWnd extends JFrame {
                 new Object[][]{
                 },
                 new String[]{
-                        "\u5167\u5B58\u5730\u5740", "\u503C"
+                        "內存地址", "值"
                 }
         );
         table.addMouseListener(event.tableMouseClick());
@@ -96,16 +72,16 @@ public class MainWnd extends JFrame {
         table.getColumnModel().getColumn(0).setPreferredWidth(78);
         scrollPane.setViewportView(table);
 
-        searchResultLabel = new JLabel("\u641C\u7D22\u7ED3\u679C:");
+        searchResultLabel = new JLabel("搜索结果:");
         searchResultLabel.setBounds(10, 59, 426, 15);
         getContentPane().add(searchResultLabel);
 
-        JButton openProcessButton = new JButton("\u6253\u5F00\u8FDB\u7A0B");
+        JButton openProcessButton = new JButton("打开进程");
         openProcessButton.addActionListener(event.openProcessButton());
         openProcessButton.setBounds(203, 84, 233, 23);
         getContentPane().add(openProcessButton);
 
-        JLabel label = new JLabel("\u8F93\u5165\u641C\u7D22\u503C:");
+        JLabel label = new JLabel("输入搜索值:");
         label.setBounds(203, 117, 63, 15);
         getContentPane().add(label);
 
@@ -114,7 +90,7 @@ public class MainWnd extends JFrame {
         getContentPane().add(searchText);
         searchText.setColumns(10);
 
-        JLabel label_1 = new JLabel("\u641C\u7D22\u7C7B\u578B:");
+        JLabel label_1 = new JLabel("搜索类型:");
         label_1.setBounds(213, 142, 53, 15);
         getContentPane().add(label_1);
 
@@ -143,11 +119,11 @@ public class MainWnd extends JFrame {
         lastSearchButton.setBounds(355, 280, 81, 23);
         getContentPane().add(lastSearchButton);
 
-        JLabel label_2 = new JLabel("-----------------------\u5167\u5B58\u64CD\u4F5C-----------------------");
+        JLabel label_2 = new JLabel("-----------------------內存操作-----------------------");
         label_2.setBounds(203, 323, 233, 15);
         getContentPane().add(label_2);
 
-        JLabel label_3 = new JLabel("\u5185\u5B58\u5730\u5740:");
+        JLabel label_3 = new JLabel("内存地址:");
         label_3.setBounds(213, 348, 53, 15);
         getContentPane().add(label_3);
 
@@ -166,7 +142,7 @@ public class MainWnd extends JFrame {
         memoryUpdateValue.setBounds(270, 370, 166, 21);
         getContentPane().add(memoryUpdateValue);
 
-        writeMemoryButton = new JButton("\u5199\u5165\u5185\u5B58");
+        writeMemoryButton = new JButton("写入内存");
         writeMemoryButton.setEnabled(false);
         writeMemoryButton.setBounds(270, 401, 81, 23);
         writeMemoryButton.addActionListener(event.updateMemoryValueButton());
@@ -226,6 +202,23 @@ public class MainWnd extends JFrame {
         getContentPane().add(memoryRangecomBoBox);
 
         initialize();
+    }
+
+    public static void main(String[] args) throws Exception {
+        UIManager.setLookAndFeel(new AluminiumLookAndFeel());
+        //UIManager.setLookAndFeel("com.jtattoo.plaf.aluminium.AluminiumLookAndFeel");
+        UIManager.put("InternalFrame.titleFont", new java.awt.Font("宋体", 0, 12));
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    MainWnd window = new MainWnd();
+                    window.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void initialize() {

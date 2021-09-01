@@ -1,14 +1,13 @@
 package com.memory.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.JOptionPane;
-
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryValue;
 import com.memory.wnd.DefaultTableModel;
 import com.memory.wnd.MainWnd;
+
+import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 内存搜索线程
@@ -17,11 +16,15 @@ import com.memory.wnd.MainWnd;
  * CSDN博客:http://blog.csdn.net/qq969422014
  **/
 public class MemorySearchThread extends Thread {
-    private MainWnd mainWnd;
-    private MemorySearchImpl memorySearch = null;
-    private String searchValue = "0";
-    private int searchType = 0;//0代表内存搜索,1代表搜索变动
     public JTableValueUpdate tableValueUpdate;//列表更新Table线程
+
+    private MainWnd mainWnd;
+
+    private MemorySearchImpl memorySearch = null;
+
+    private String searchValue = "0";
+
+    private int searchType = 0;//0代表内存搜索,1代表搜索变动
 
     public MemorySearchThread(MainWnd mainWnd, String searchValue, int searchType) {
         this.mainWnd = mainWnd;
@@ -30,6 +33,7 @@ public class MemorySearchThread extends Thread {
         this.searchType = searchType;
     }
 
+    @Override
     public void run() {
         try {
             //界面显示处理
@@ -163,6 +167,7 @@ class JTableValueUpdate extends Thread {
         this.mainWnd = mainWnd;
     }
 
+    @Override
     public void run() {
         try {
             int size = 0;

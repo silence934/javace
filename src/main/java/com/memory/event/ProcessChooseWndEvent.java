@@ -1,19 +1,18 @@
 package com.memory.event;
 
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.List;
-
-import javax.swing.JOptionPane;
-
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryRange;
 import com.memory.entity.Process;
 import com.memory.impl.LoadSystemProcessInfo;
 import com.memory.impl.MemoryRangeQuery;
 import com.memory.wnd.ProcessChooseWnd;
+
+import javax.swing.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.List;
 
 /**
  * 进程选择窗口事件处理
@@ -33,6 +32,7 @@ public class ProcessChooseWndEvent {
      */
     public WindowAdapter windowActivated() {
         return new WindowAdapter() {
+            @Override
             @SuppressWarnings("unchecked")
             public void windowActivated(WindowEvent e) {
                 //获取系统进程列表
@@ -57,11 +57,14 @@ public class ProcessChooseWndEvent {
      **/
     public MouseAdapter processListMouseDClient() {
         return new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     //获取点击值
                     Object object = processChooseWnd.list.getSelectedValue();
-                    if (object == null) return;
+                    if (object == null) {
+                        return;
+                    }
                     processChooseWnd.setVisible(false);
                     Process p = (Process) object;
                     //判断内存范围下拉框是否显示正确

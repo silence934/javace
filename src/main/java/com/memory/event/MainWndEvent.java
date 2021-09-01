@@ -1,27 +1,15 @@
 package com.memory.event;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-
-import javax.swing.JOptionPane;
-
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryRange;
-import com.memory.impl.GiveProcessPrivilege;
-import com.memory.impl.KillProcess;
-import com.memory.impl.MemoryRangeQuery;
-import com.memory.impl.MemorySearchThread;
-import com.memory.impl.MemoryWrite;
+import com.memory.impl.*;
 import com.memory.interfaces.Kernel32_DLL;
 import com.memory.quantity.LookupPrivilegeValue;
 import com.memory.wnd.MainWnd;
 import com.memory.wnd.ProcessChooseWnd;
+
+import javax.swing.*;
+import java.awt.event.*;
 
 /**
  * MainWnd窗口的事件响应类
@@ -54,8 +42,9 @@ public class MainWndEvent {
                     return;
                 }
                 //对象NULL值判断
-                if (processChooseWnd == null)
+                if (processChooseWnd == null) {
                     processChooseWnd = new ProcessChooseWnd(mainWnd);
+                }
                 processChooseWnd.setVisible(true);
             }
         };
@@ -125,7 +114,9 @@ public class MainWndEvent {
             @Override
             public void actionPerformed(ActionEvent e) {
                 //判断查询列表中是否有值,如果没值,则表明用户没有执行内存查询操作,则该按钮无效
-                if (mainWnd.tableModel.getRowCount() == 0) return;
+                if (mainWnd.tableModel.getRowCount() == 0) {
+                    return;
+                }
                 //执行查询线程,1代表内存变化搜索
                 memorySearchThread = new MemorySearchThread(mainWnd, "0", 1);
                 memorySearchThread.start();
@@ -138,6 +129,7 @@ public class MainWndEvent {
      **/
     public MouseAdapter tableMouseClick() {
         return new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent e) {
                 //获取鼠标点击Table列表的值
                 if (e.getButton() == MouseEvent.BUTTON1) {
@@ -156,8 +148,9 @@ public class MainWndEvent {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (memoryWriter == null)
+                if (memoryWriter == null) {
                     memoryWriter = new MemoryWrite();
+                }
                 //获取输入框的值
                 String lpBaseAddress = mainWnd.memoryAddressText.getText().trim();
                 String value = mainWnd.memoryUpdateValue.getText().trim();
@@ -200,9 +193,12 @@ public class MainWndEvent {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int answer = JOptionPane.showConfirmDialog(mainWnd, "确定杀死进程" + mainWnd.currentProcess.getProcessName() + "?", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                if (answer != JOptionPane.YES_OPTION)
+                if (answer != JOptionPane.YES_OPTION) {
                     return;
-                if (kill == null) kill = new KillProcess();
+                }
+                if (kill == null) {
+                    kill = new KillProcess();
+                }
 
                 ExecuteResult executeResult = kill.kill(mainWnd.currentProcess.getPid());
                 if (executeResult.getLastError() != 0) {
@@ -234,8 +230,9 @@ public class MainWndEvent {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int answer = JOptionPane.showConfirmDialog(mainWnd, "确定停止当前内存扫描?不建议这么操作!", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                if (answer != JOptionPane.YES_OPTION)
+                if (answer != JOptionPane.YES_OPTION) {
                     return;
+                }
                 //判断当前是否正在执行扫描动作
                 if (memorySearchThread != null
                         && memorySearchThread.isAlive()) {
@@ -263,6 +260,7 @@ public class MainWndEvent {
      **/
     public WindowAdapter openLoad() {
         return new WindowAdapter() {
+            @Override
             public void windowOpened(WindowEvent e) {
                 GiveProcessPrivilege give = new GiveProcessPrivilege();
                 give.give(Kernel32_DLL.INSTANCE.GetCurrentProcess(), LookupPrivilegeValue.SeDebugPrivilege);
@@ -277,7 +275,9 @@ public class MainWndEvent {
         return new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
-                if (e.getStateChange() != ItemEvent.SELECTED) return;
+                if (e.getStateChange() != ItemEvent.SELECTED) {
+                    return;
+                }
                 //判断输入框是否已启动
                 if (mainWnd.memoryStartAddress.isEditable()) {
                     mainWnd.memoryStartAddress.setEditable(false);
