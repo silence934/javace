@@ -51,10 +51,10 @@ public class MemorySearchThread extends Thread {
             mainWnd.searchResultLabel.setText("搜索结果:");
             //判断是内存扫描还是变化扫描
             if (searchType == 0) {
-                mainWnd.statusLabel.setText("正在扫描进程" + mainWnd.currentProcess.getProcessName() + "请稍后...");
+                mainWnd.statusLabel.setText("正在扫描进程" + mainWnd.currentProcess.getName() + "请稍后...");
                 mainWnd.tableModel.setRowCount(0);
                 //进程ID
-                int pid = mainWnd.currentProcess.getPid();
+                int pid = mainWnd.currentProcess.getProcessID();
                 //搜索的数据类型,0=INT 1=Short 2=long 3=float 4=double 5=byte
                 int searchDataType = mainWnd.searchDataType.getSelectedIndex();
                 //与搜索值比较 0等于,1大于,2小于
@@ -78,9 +78,9 @@ public class MemorySearchThread extends Thread {
                     mainWnd.resetWindow();
                     return;
                 }
-                mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getProcessName() + "扫描完成!");
+                mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getName() + "扫描完成!");
             } else if (searchType == 1) {
-                mainWnd.statusLabel.setText("正在扫描进程" + mainWnd.currentProcess.getProcessName() + "变化的内存值,请稍后...");
+                mainWnd.statusLabel.setText("正在扫描进程" + mainWnd.currentProcess.getName() + "变化的内存值,请稍后...");
                 mainWnd.lastSearchButton.setEnabled(false);
                 //获取当前Table列表搜索的内存的值
                 DefaultTableModel model = mainWnd.tableModel;
@@ -99,7 +99,7 @@ public class MemorySearchThread extends Thread {
                 //清空Table列表
                 mainWnd.tableModel.setRowCount(0);
                 //进程ID
-                int pid = mainWnd.currentProcess.getPid();
+                int pid = mainWnd.currentProcess.getProcessID();
                 //搜索的數據類型,0=INT 1=Short 2=long 3=float 4=double 5=byte
                 int searchDataType = mainWnd.searchDataType.getSelectedIndex();
                 //更新TABLE列表
@@ -117,13 +117,13 @@ public class MemorySearchThread extends Thread {
                 }
                 //判断Table是否存在变化的值
                 if (model.getRowCount() == 0) {
-                    mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getProcessName() + "扫描完成,没有发现变化值!");
+                    mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getName() + "扫描完成,没有发现变化值!");
                     //恢复Table列表为搜索前的值
                     for (MemoryValue value : searchValue) {
                         model.addRow(new String[]{value.getAddress16(), value.getValue()});
                     }
                 } else {
-                    mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getProcessName() + "扫描完成!");
+                    mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getName() + "扫描完成!");
                 }
             }
             //界面显示处理
