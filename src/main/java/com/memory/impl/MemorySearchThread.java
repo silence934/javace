@@ -17,7 +17,8 @@ import java.util.List;
  * CSDN博客:http://blog.csdn.net/qq969422014
  **/
 public class MemorySearchThread extends Thread {
-    public JTableValueUpdate tableValueUpdate;//列表更新Table线程
+    //列表更新Table线程
+    public JTableValueUpdate tableValueUpdate;
 
     private MainWnd mainWnd;
 
@@ -25,7 +26,8 @@ public class MemorySearchThread extends Thread {
 
     private String searchValue = "0";
 
-    private int searchType = 0;//0代表内存搜索,1代表搜索变动
+    //0代表内存搜索,1代表搜索变动
+    private int searchType = 0;
 
     public MemorySearchThread(MainWnd mainWnd, String searchValue, int searchType) {
         this.mainWnd = mainWnd;
@@ -53,7 +55,7 @@ public class MemorySearchThread extends Thread {
                 mainWnd.tableModel.setRowCount(0);
                 //进程ID
                 int pid = mainWnd.currentProcess.getPid();
-                //搜索的數據類型,0=INT 1=Short 2=long 3=float 4=double 5=byte
+                //搜索的数据类型,0=INT 1=Short 2=long 3=float 4=double 5=byte
                 int searchDataType = mainWnd.searchDataType.getSelectedIndex();
                 //与搜索值比较 0等于,1大于,2小于
                 int equalsSearchValue = mainWnd.searchType.getSelectedIndex();
@@ -169,6 +171,7 @@ class JTableValueUpdate extends Thread {
     }
 
     @Override
+    @SuppressWarnings("BusyWait")
     public void run() {
         try {
             int size = 0;

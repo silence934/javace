@@ -12,6 +12,7 @@ import com.sun.jna.platform.win32.Kernel32Util;
 import com.sun.jna.platform.win32.Tlhelp32;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
+import oshi.software.os.OSProcess;
 
 import java.util.List;
 
@@ -68,20 +69,20 @@ public class MemoryRangeQuery {
         try {
             MODULEENTRY32 lpme = new MODULEENTRY32();
             if (Kernel32_DLL.INSTANCE.Module32First(handleModule, lpme)) {
-               // range.setMinValue(lpme.modBaseAddr);
+                range.setMinValue(new Pointer(lpme.modBaseAddr));
                 if (Kernel32_DLL.INSTANCE.Module32Next(handleModule, lpme)) {
-                //    range.setMaxValue(lpme.modBaseAddr);
+                    range.setMaxValue(new Pointer(lpme.modBaseAddr));
                 }
             }
             //执行结果返回值
             executeResult.setValue(range);
             //执行结果
             lastError = Kernel32_DLL.INSTANCE.GetLastError();
-//            if (range.getMinValue() == 0 && lastError != 0) {
-//                executeResult.setLastError(lastError);
-//                log.error("Module32Next失败,错误代码:" + lastError);
-//                executeResult.setMessage("Module32Next失败,错误代码:" + lastError);
-//            }
+            if (range.getMinValue() == null&& lastError != 0) {
+                executeResult.setLastError(lastError);
+                log.error("Module32Next失败,错误代码:" + lastError);
+                executeResult.setMessage("Module32Next失败,错误代码:" + lastError);
+            }
 
         } finally {
             //释放快照
@@ -94,13 +95,13 @@ public class MemoryRangeQuery {
     /**
      * 查询进程在内存中的开始地址与结束地址
      **/
-    public ExecuteResult queryProcessRange(int pid) {
+    public ExecuteResult queryProcessRange(OSProcess process) {
 
 
         ExecuteResult executeResult = new ExecuteResult();
         MemoryRange range = new MemoryRange();
 
-        List<Tlhelp32.MODULEENTRY32W> modules = Kernel32Util.getModules(pid);
+        List<Tlhelp32.MODULEENTRY32W> modules = Kernel32Util.getModules(process.getProcessID());
 
 
         range.setMinValue(modules.get(0).modBaseAddr);

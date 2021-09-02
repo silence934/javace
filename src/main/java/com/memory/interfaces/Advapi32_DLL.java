@@ -20,7 +20,7 @@ public interface Advapi32_DLL extends StdCallLibrary {
      * 加载DLL文件库
      * 指定編碼為UNICODE_OPTIONS,不然要亂碼
      */
-    Advapi32_DLL INSTANCE = (Advapi32_DLL) Native.load("Advapi32", Advapi32_DLL.class
+    Advapi32_DLL INSTANCE = Native.load("Advapi32", Advapi32_DLL.class
             , W32APIOptions.UNICODE_OPTIONS);
 
     /**

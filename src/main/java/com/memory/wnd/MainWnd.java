@@ -2,8 +2,8 @@ package com.memory.wnd;
 
 import com.jtattoo.plaf.aluminium.AluminiumLookAndFeel;
 import com.memory.entity.MemoryRange;
-import com.memory.entity.Process;
 import com.memory.event.MainWndEvent;
+import oshi.software.os.OSProcess;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,23 +22,22 @@ public class MainWnd extends JFrame {
     public JTextField memoryAddressText;
     public JTextField memoryUpdateValue;
     public JLabel statusLabel;
-    public Process currentProcess = null;
+    public OSProcess currentProcess = null;
     public JButton firstSearchButton;
     public JButton lastSearchButton;
     public JProgressBar progressBar;
-    public JComboBox searchType;
+    public JComboBox<String> searchType;
     public DefaultTableModel tableModel = null;
     public JButton writeMemoryButton;
     public JButton killButton;
-    public JComboBox searchDataType;
+    public JComboBox<String> searchDataType;
     public JButton resetButton;
     public JButton stopButton;
     public JLabel searchResultLabel;
     public JTextField memoryStartAddress;
     public JTextField memoryEndAddress;
-    public JComboBox memoryRangecomBoBox;
+    public JComboBox<String> memoryRangecomBoBox;
     public MemoryRange range;
-    private MainWndEvent event = new MainWndEvent(this);
 
     public MainWnd() {
         setTitle("內存修改工具1.0");
@@ -63,12 +62,10 @@ public class MainWnd extends JFrame {
 
         table = new JTable();
         tableModel = new DefaultTableModel(
-                new Object[][]{
-                },
-                new String[]{
-                        "內存地址", "值"
-                }
+                new Object[][]{},
+                new String[]{"內存地址", "值"}
         );
+        MainWndEvent event = new MainWndEvent(this);
         table.addMouseListener(event.tableMouseClick());
         table.setModel(tableModel);
         table.getColumnModel().getColumn(0).setPreferredWidth(78);
@@ -92,21 +89,21 @@ public class MainWnd extends JFrame {
         getContentPane().add(searchText);
         searchText.setColumns(10);
 
-        JLabel label_1 = new JLabel("搜索类型:");
-        label_1.setBounds(213, 142, 53, 15);
-        getContentPane().add(label_1);
-
-        searchType = new JComboBox();
-        searchType.setModel(new DefaultComboBoxModel(new String[]{"精确值", "比搜索值大", "比搜索值小"}));
-        searchType.setBounds(270, 139, 166, 21);
+        JLabel searchType = new JLabel("搜索类型:");
+        searchType.setBounds(213, 142, 53, 15);
         getContentPane().add(searchType);
+
+        this.searchType = new JComboBox<>();
+        this.searchType.setModel(new DefaultComboBoxModel<>(new String[]{"精确值", "比搜索值大", "比搜索值小"}));
+        this.searchType.setBounds(270, 139, 166, 21);
+        getContentPane().add(this.searchType);
 
         JLabel lblNewLabel_2 = new JLabel("数据类型:");
         lblNewLabel_2.setBounds(213, 170, 53, 15);
         getContentPane().add(lblNewLabel_2);
 
-        searchDataType = new JComboBox();
-        searchDataType.setModel(new DefaultComboBoxModel(new String[]{"整数 int", "短整数 short", "长整数 long", "单精度浮点 float", "双精度浮点 double", "字节 byte"}));
+        searchDataType = new JComboBox<>();
+        searchDataType.setModel(new DefaultComboBoxModel<>(new String[]{"整数 int", "短整数 short", "长整数 long", "单精度浮点 float", "双精度浮点 double", "字节 byte"}));
         searchDataType.setBounds(270, 167, 166, 21);
         getContentPane().add(searchDataType);
 
@@ -196,9 +193,9 @@ public class MainWnd extends JFrame {
         label_7.setBounds(213, 202, 53, 15);
         getContentPane().add(label_7);
 
-        memoryRangecomBoBox = new JComboBox();
+        memoryRangecomBoBox = new JComboBox<>();
         memoryRangecomBoBox.setEnabled(false);
-        memoryRangecomBoBox.setModel(new DefaultComboBoxModel(new String[]{"进程所占内存范围", "整个系统内存范围", "自定义內存范围"}));
+        memoryRangecomBoBox.setModel(new DefaultComboBoxModel<>(new String[]{"进程所占内存范围", "整个系统内存范围", "自定义內存范围"}));
         memoryRangecomBoBox.setBounds(270, 198, 166, 21);
         memoryRangecomBoBox.addItemListener(event.memoryRangeItem());
         getContentPane().add(memoryRangecomBoBox);
@@ -227,7 +224,6 @@ public class MainWnd extends JFrame {
         setBounds(100, 100, 452, 484);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        addWindowListener(event.openLoad());
     }
 
     public void resetWindow() {

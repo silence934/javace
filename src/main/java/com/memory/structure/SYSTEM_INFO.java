@@ -1,10 +1,10 @@
 package com.memory.structure;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 作者:Code菜鸟
@@ -50,12 +50,13 @@ public class SYSTEM_INFO extends Structure {
     public int wProcessorLevel;
     public int wProcessorRevision;
 
+    @Override
     protected List<String> getFieldOrder() {
-        return Arrays.asList(new String[]{"processorArchitecture",
-                "dwPageSize", "lpMinimumApplicationAddress",
-                "lpMaximumApplicationAddress", "dwActiveProcessorMask",
-                "dwNumberOfProcessors", "dwProcessorType",
-                "dwAllocationGranularity", "wProcessorLevel",
-                "wProcessorRevision"});
+        return Arrays.asList("processorArchitecture",
+                             "dwPageSize", "lpMinimumApplicationAddress",
+                             "lpMaximumApplicationAddress", "dwActiveProcessorMask",
+                             "dwNumberOfProcessors", "dwProcessorType",
+                             "dwAllocationGranularity", "wProcessorLevel",
+                             "wProcessorRevision");
     }
 }

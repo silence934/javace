@@ -1,15 +1,15 @@
 package com.memory.wnd;
 
-import java.awt.BorderLayout;
-
-import javax.swing.DefaultListModel;
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import javax.swing.JScrollPane;
-import javax.swing.JList;
-
 import com.memory.event.ProcessChooseWndEvent;
+import oshi.SystemInfo;
+import oshi.software.os.OSProcess;
+import oshi.software.os.OperatingSystem;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.util.Comparator;
+import java.util.function.Predicate;
 
 /**
  * 作者:Code菜鸟
@@ -17,15 +17,15 @@ import com.memory.event.ProcessChooseWndEvent;
  * CSDN博客:http://blog.csdn.net/qq969422014
  * <p>
  * 进程选择界面
+ * @author fucong
  */
 public class ProcessChooseWnd extends JDialog {
 
     private static final long serialVersionUID = 1L;
-    private JPanel contentPanel = new JPanel();
-    public JList list;
-    public DefaultListModel model = new DefaultListModel();
-    public MainWnd mainWnd = null;
-    private ProcessChooseWndEvent event = new ProcessChooseWndEvent(this);
+
+    public JList<OSProcess> list;
+
+    public MainWnd mainWnd;
 
     public ProcessChooseWnd(MainWnd mainWnd) {
         super(mainWnd, true);
@@ -35,19 +35,40 @@ public class ProcessChooseWnd extends JDialog {
         setBounds(100, 100, 242, 330);
         setLocationRelativeTo(null);
         getContentPane().setLayout(new BorderLayout());
+        JPanel contentPanel = new JPanel();
         contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         getContentPane().add(contentPanel, BorderLayout.CENTER);
         contentPanel.setLayout(null);
 
+        ProcessChooseWndEvent event = new ProcessChooseWndEvent(this);
+
+        //todo 刷新
+        list = new JList<>();
+        list.setModel(getProcess(osProcess -> true));
+        list.addMouseListener(event.processListMouseClient());
+
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setBounds(0, 0, 236, 298);
+        scrollPane.setViewportView(list);
         contentPanel.add(scrollPane);
 
-        list = new JList();
-        list.addMouseListener(event.processListMouseDClient());
-        scrollPane.setViewportView(list);
-        list.setModel(model);
-
-        addWindowListener(event.windowActivated());
     }
+
+
+    private DefaultListModel<OSProcess> getProcess(Predicate<OSProcess> filter){
+
+        DefaultListModel<OSProcess> defaultListModel=new DefaultListModel<>();
+
+        SystemInfo systemInfo=new SystemInfo();
+        OperatingSystem operatingSystem = systemInfo.getOperatingSystem();
+
+         operatingSystem.getProcesses().stream().filter(filter)
+                .sorted(Comparator.comparing(OSProcess::getName))
+                 .forEach(defaultListModel::addElement);
+
+         return defaultListModel;
+    }
+
+
+
 }

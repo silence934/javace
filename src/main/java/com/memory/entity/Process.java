@@ -27,10 +27,12 @@ public class Process implements Comparable<Process> {
         this.pid = pid;
     }
 
+    @Override
     public String toString() {
         return pid +"-------"+ processName;
     }
 
+    @Override
     public int compareTo(Process o) {
         return o.processName.compareTo(this.processName);
     }
