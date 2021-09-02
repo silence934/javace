@@ -4,8 +4,6 @@ import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryValue;
 import com.memory.interfaces.Kernel32_DLL;
 import com.memory.quantity.OpenProcess;
-import com.memory.quantity.VirtualProtect;
-import com.memory.structure.MEMORY_BASIC_INFORMATION;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.BaseTSD;
@@ -42,15 +40,13 @@ public class MemorySearchImpl {
      * endBaseAddr 搜索结束的内存基址
      * increasing 搜索地址的递增量
      **/
-    public ExecuteResult search(int pid, String searchValue, int searchDataType, int equalsSearchValue, Pointer startBaseAddr, Pointer endBaseAddr) {
+    public ExecuteResult search(int pid, String searchValue, int searchDataType, int equalsSearchValue, Pointer startBaseAddress, Pointer endBaseAddress) {
         if (searchResult.size() != 0) {
             searchResult.clear();
         }
         ExecuteResult executeResult = new ExecuteResult();
         memoryScore = 0;
         //根据进程ID,打开进程,返回进程句柄
-        //int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
-
         WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS , false, pid);
 
 
@@ -72,12 +68,10 @@ public class MemorySearchImpl {
         WinNT.MEMORY_BASIC_INFORMATION information=new WinNT.MEMORY_BASIC_INFORMATION();
         try {
             //根据基址遍历内存
-            while (Pointer.nativeValue(startBaseAddr) <= Pointer.nativeValue(endBaseAddr)) {
-                //读取内存信息
-                 // int vqe = Kernel32_DLL.INSTANCE.VirtualQueryEx(handle, startBaseAddr, memoryInfo, size);
+            while (Pointer.nativeValue(startBaseAddress) <= Pointer.nativeValue(endBaseAddress)) {
 
                 BaseTSD.SIZE_T size_t = Kernel32.INSTANCE.VirtualQueryEx(hProcess,
-                        startBaseAddr, information, new BaseTSD.SIZE_T(information.size()));
+                        startBaseAddress, information, new BaseTSD.SIZE_T(information.size()));
 
                 if (size_t.intValue() == 0) {
                     break;
@@ -85,7 +79,12 @@ public class MemorySearchImpl {
                 //判断内存是否已提交,非空闲内存
                 if (information.state.intValue() == WinNT.MEM_COMMIT) {
                     //更改内存保护属性为可写可读,成功返回TRUE,执行这个函数,OpenProcess函数必须为PROCESS_ALL_ACCESS
-                    boolean vpe = true;//Kernel32_DLL.INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()), Pointer.nativeValue(startBaseAddr), information.regionSize.intValue(), WinNT.PAGE_READWRITE, information.protect.intValue());
+                    boolean vpe = Kernel32_DLL
+                            .INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()),
+                                                                         Pointer.nativeValue(startBaseAddress),
+                                                                         information.regionSize.intValue(),
+                                                                         WinNT.PAGE_READWRITE,
+                                                       information.protect.intValue());
 
                     //判断内存是否可读可写
                     if (vpe || information.protect.intValue() == WinNT.PAGE_READWRITE) {
@@ -93,7 +92,7 @@ public class MemorySearchImpl {
                         Pointer buffer = new Memory(information.regionSize.longValue());
 
                         //判断是否读取成功
-                        if ( Kernel32.INSTANCE.ReadProcessMemory(hProcess, startBaseAddr, buffer,
+                        if (Kernel32.INSTANCE.ReadProcessMemory(hProcess, startBaseAddress, buffer,
                                 information.regionSize.intValue(), new IntByReference(0))) {
 
                             //根据搜索类型查找对应数据
@@ -102,12 +101,10 @@ public class MemorySearchImpl {
                                 //统计内存数量
                                 memoryScore++;
                                 //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                if ((equalsSearchValue == 0 && memoryValue == searchValueDouble) ||
-                                        (equalsSearchValue == 1 && memoryValue > searchValueDouble) ||
-                                        (equalsSearchValue == 2 && memoryValue < searchValueDouble)) {
+                                if ((equalsSearchValue == 0 && memoryValue == searchValueDouble)) {
                                     MemoryValue temp = new MemoryValue();
-                                    temp.setAddress(Pointer.nativeValue(startBaseAddr) + i);
-                                    temp.setAddress16("0x" + Long.toString((Pointer.nativeValue(startBaseAddr) + i), 16).toUpperCase());
+                                    temp.setAddress(Pointer.nativeValue(startBaseAddress) + i);
+                                    temp.setAddress16("0x" + Long.toString((Pointer.nativeValue(startBaseAddress) + i), 16).toUpperCase());
                                     temp.setValue(memoryValue + "");
                                     searchResult.add(temp);
                                 }
@@ -120,7 +117,7 @@ public class MemorySearchImpl {
                     }
                 }
                 //设置基地址偏移
-                startBaseAddr = new Pointer( Pointer.nativeValue(information.baseAddress) + information.regionSize.longValue());
+                startBaseAddress = new Pointer( Pointer.nativeValue(information.baseAddress) + information.regionSize.longValue());
             }
 
         } catch (Exception e) {
@@ -188,6 +185,7 @@ public class MemorySearchImpl {
                         case 5:
                             m.setValue(readResult.getByte(0) + "");
                             break;
+                        default:
                     }
                     tableValueMap.put(m.getAddress16(), m);
                 }

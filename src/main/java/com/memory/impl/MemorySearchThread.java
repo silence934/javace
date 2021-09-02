@@ -17,17 +17,17 @@ import java.util.List;
  * CSDN博客:http://blog.csdn.net/qq969422014
  **/
 public class MemorySearchThread extends Thread {
-    //列表更新Table线程
-    public JTableValueUpdate tableValueUpdate;
+    private final MainWnd mainWnd;
 
-    private MainWnd mainWnd;
+    private final MemorySearchImpl memorySearch;
 
-    private MemorySearchImpl memorySearch = null;
-
-    private String searchValue = "0";
+    private final String searchValue;
 
     //0代表内存搜索,1代表搜索变动
-    private int searchType = 0;
+    private final int searchType;
+
+    //列表更新Table线程
+    public JTableValueUpdate tableValueUpdate;
 
     public MemorySearchThread(MainWnd mainWnd, String searchValue, int searchType) {
         this.mainWnd = mainWnd;
