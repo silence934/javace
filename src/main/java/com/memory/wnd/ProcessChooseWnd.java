@@ -44,7 +44,7 @@ public class ProcessChooseWnd extends JDialog {
 
         //todo 刷新
         list = new JList<>();
-        list.setModel(getProcess(osProcess -> true));
+        list.setModel(getProcess(process ->process.getName().contains("Plants") ));
         list.addMouseListener(event.processListMouseClient());
 
         JScrollPane scrollPane = new JScrollPane();

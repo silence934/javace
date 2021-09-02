@@ -105,7 +105,7 @@ public class MemoryRangeQuery {
 
 
         range.setMinValue(modules.get(0).modBaseAddr);
-        range.setMaxValue(modules.get(modules.size()-1).modBaseAddr);
+        range.setMaxValue(modules.get(1).modBaseAddr);
 
         executeResult.setValue(range);
 

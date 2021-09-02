@@ -67,13 +67,12 @@ public class MemorySearchImpl {
 
         //保存查询内存结果信息的结构体类
         //MEMORY_BASIC_INFORMATION memoryInfo = new MEMORY_BASIC_INFORMATION();
-
+        //对比的值
+        double searchValueDouble = Double.parseDouble(searchValue);
         WinNT.MEMORY_BASIC_INFORMATION information=new WinNT.MEMORY_BASIC_INFORMATION();
         try {
             //根据基址遍历内存
-            int m=0,n=0;
             while (Pointer.nativeValue(startBaseAddr) <= Pointer.nativeValue(endBaseAddr)) {
-                m++;
                 //读取内存信息
                  // int vqe = Kernel32_DLL.INSTANCE.VirtualQueryEx(handle, startBaseAddr, memoryInfo, size);
 
@@ -88,20 +87,15 @@ public class MemorySearchImpl {
                     //更改内存保护属性为可写可读,成功返回TRUE,执行这个函数,OpenProcess函数必须为PROCESS_ALL_ACCESS
                     boolean vpe = true;//Kernel32_DLL.INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()), Pointer.nativeValue(startBaseAddr), information.regionSize.intValue(), WinNT.PAGE_READWRITE, information.protect.intValue());
 
-                    int i1 = Kernel32_DLL.INSTANCE.GetLastError();
-                    System.out.println("error"+i1);
-
                     //判断内存是否可读可写
                     if (vpe || information.protect.intValue() == WinNT.PAGE_READWRITE) {
-                        n++;
                         //声明一块内存空间,保存读取内存块的值,这个空间的大小与内存块大小相同
                         Pointer buffer = new Memory(information.regionSize.longValue());
 
                         //判断是否读取成功
                         if ( Kernel32.INSTANCE.ReadProcessMemory(hProcess, startBaseAddr, buffer,
                                 information.regionSize.intValue(), new IntByReference(0))) {
-                            //对比的值
-                            double searchValueDouble = Double.parseDouble(searchValue);
+
                             //根据搜索类型查找对应数据
                             for (int i = 0; i < information.regionSize.intValue(); i += 4) {
                                 double memoryValue = buffer.getInt(i);
@@ -118,7 +112,6 @@ public class MemorySearchImpl {
                                     searchResult.add(temp);
                                 }
                             }
-                            break;
                         }
 
 
@@ -130,8 +123,6 @@ public class MemorySearchImpl {
                 startBaseAddr = new Pointer( Pointer.nativeValue(information.baseAddress) + information.regionSize.longValue());
             }
 
-            System.out.println(m);
-            System.out.println(n);
         } catch (Exception e) {
             e.printStackTrace();
             executeResult.setLastError(-1);
