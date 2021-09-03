@@ -8,6 +8,7 @@ import com.memory.impl.MemorySearchThread;
 import com.memory.impl.MemoryWrite;
 import com.memory.wnd.MainWnd;
 import com.memory.wnd.ProcessChooseWnd;
+import com.sun.jna.Pointer;
 
 import javax.swing.*;
 import java.awt.event.*;
@@ -159,13 +160,15 @@ public class MainWndEvent {
             if ((!lpBaseAddress.startsWith("0x"))) {
                 JOptionPane.showMessageDialog(mainWnd, "1.请先搜索內存地址,然後点击左边的列表选择内存地址\n\n2.手动输入正确的内存地址!\n\n注:内存地址均为16进制且以0x开头!", "提示", JOptionPane.INFORMATION_MESSAGE);
                 return;
-            } else if (!value.matches("\\-{0,1}[0-9]+\\.*[0-9]*")) {
+            } else if (!value.matches("-?[0-9]+\\.*[0-9]*")) {
                 JOptionPane.showMessageDialog(mainWnd, "修改值只能是数字类型!", "ERROR", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             try {
                 //执行写入内存的操作
-                ExecuteResult result = memoryWriter.write(mainWnd.currentProcess.getProcessID(), Integer.parseInt(lpBaseAddress.replace("0x", ""), 16), value, mainWnd.memoryRangecomBoBox.getSelectedIndex());
+                ExecuteResult result = memoryWriter.write(mainWnd.currentProcess.getProcessID(),
+                        new Pointer( Long.parseLong(lpBaseAddress.replace("0x", ""), 16)),
+                        value, mainWnd.memoryRangecomBoBox.getSelectedIndex());
                 if (result.getLastError() != 0) {
                     JOptionPane.showMessageDialog(mainWnd, result.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
                     return;

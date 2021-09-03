@@ -27,7 +27,7 @@ public class MainWnd extends JFrame {
     public JButton lastSearchButton;
     public JProgressBar progressBar;
     public JComboBox<String> searchType;
-    public DefaultTableModel tableModel = null;
+    public DefaultTableModel tableModel;
     public JButton writeMemoryButton;
     public JButton killButton;
     public JComboBox<String> searchDataType;

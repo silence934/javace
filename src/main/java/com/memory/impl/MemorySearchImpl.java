@@ -10,6 +10,7 @@ import com.sun.jna.platform.win32.BaseTSD;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
@@ -20,6 +21,7 @@ import java.util.*;
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
  */
+@Slf4j
 public class MemorySearchImpl {
     //统计内存扫描数量
     public int memoryScore = 0;
@@ -79,13 +81,7 @@ public class MemorySearchImpl {
                 //判断内存是否已提交,非空闲内存
                 if (information.state.intValue() == WinNT.MEM_COMMIT) {
                     //更改内存保护属性为可写可读,成功返回TRUE,执行这个函数,OpenProcess函数必须为PROCESS_ALL_ACCESS
-                    boolean vpe = Kernel32_DLL
-                            .INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()),
-                                                                         Pointer.nativeValue(startBaseAddress),
-                                                                         information.regionSize.intValue(),
-                                                                         WinNT.PAGE_READWRITE,
-                                                       information.protect.intValue());
-
+                    boolean vpe = Kernel32_DLL.INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()), Pointer.nativeValue(startBaseAddress), information.regionSize.intValue(), WinNT.PAGE_READWRITE, information.protect.intValue());
                     //判断内存是否可读可写
                     if (vpe || information.protect.intValue() == WinNT.PAGE_READWRITE) {
                         //声明一块内存空间,保存读取内存块的值,这个空间的大小与内存块大小相同
@@ -110,7 +106,6 @@ public class MemorySearchImpl {
                                 }
                             }
                         }
-
 
                         //释放内存
                         ReferenceFree.free(buffer);
@@ -148,7 +143,7 @@ public class MemorySearchImpl {
         int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
         try {
             //保存读取的新值
-            Map<String, MemoryValue> tableValueMap = new HashMap<String, MemoryValue>();
+            Map<String, MemoryValue> tableValueMap = new HashMap<>();
             //声明一块内存,保存读取值
             Pointer readResult = new Memory(1024);
             for (int i = 0; i < addressList.size(); i++) {

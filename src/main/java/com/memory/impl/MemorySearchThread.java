@@ -161,8 +161,8 @@ public class MemorySearchThread extends Thread {
  * JTabele显示更新线程,该线程监听MemorySearchImpl类中searchResult的SIZE变化
  **/
 class JTableValueUpdate extends Thread {
-    private MemorySearchImpl memorySearchImpl;
-    private MainWnd mainWnd;
+    private final MemorySearchImpl memorySearchImpl;
+    private final MainWnd mainWnd;
     private boolean isRun = true;
 
     public JTableValueUpdate(MainWnd mainWnd, MemorySearchImpl memorySearchImpl) {

@@ -6,6 +6,10 @@ import com.memory.quantity.OpenProcess;
 import com.memory.structure.MEMORY_BASIC_INFORMATION;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.BaseTSD;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.ptr.IntByReference;
 
 /**
  * 内存的写实现类
@@ -21,29 +25,29 @@ public class MemoryWrite {
      * value 写入值
      * dataType 数据类型,这个值确定value的实际数据类型
      **/
-    public ExecuteResult write(int pid, int lpBaseAddress, String value, int dataType) {
+    public ExecuteResult write(int pid, Pointer lpBaseAddress, String value, int dataType) {
         ExecuteResult result = new ExecuteResult();
-        int hProcess = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
-        //判断进程句柄是否打开成功
-        int lastError = Kernel32_DLL.INSTANCE.GetLastError();
-        result.setLastError(lastError);
-        if (lastError == 5) {
-            result.setMessage("进程拒绝访问,可能是系统Debug权限获取失败,请以管理员方式重新运行程序!");
-            return result;
-        } else if (lastError != 0) {
-            result.setMessage("无法打开该进程,错误代码:" + lastError);
-            return result;
-        }
+
+        WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS , false, pid);
+
+
         try {
             //判断内存地址是否合法幷且是否满足读写权限
-            MEMORY_BASIC_INFORMATION lpBuffer = new MEMORY_BASIC_INFORMATION();
-            Kernel32_DLL.INSTANCE.VirtualQueryEx(hProcess, lpBaseAddress, lpBuffer, lpBuffer.size());
-            if (!(lpBuffer.state == MEMORY_BASIC_INFORMATION.MEM_COMMIT
-                    && lpBuffer.protect == MEMORY_BASIC_INFORMATION.PAGE_READWRITE)) {
+            WinNT.MEMORY_BASIC_INFORMATION lpBuffer=new WinNT.MEMORY_BASIC_INFORMATION();
+            Kernel32.INSTANCE.VirtualQueryEx(hProcess, lpBaseAddress, lpBuffer, new BaseTSD.SIZE_T(lpBuffer.size()));
+
+            if (lpBuffer.state.intValue() != WinNT.MEM_COMMIT){
                 result.setLastError(-1);
-                result.setMessage("内存地址不存在或者该内存无法读写!");
+                result.setMessage("内存地址不存!");
                 return result;
             }
+            if (lpBuffer.protect.intValue() != WinNT.PAGE_READWRITE) {
+                result.setLastError(-1);
+                result.setMessage("该内存无法读写!");
+                return result;
+            }
+
+
             //新内存地址,用于写入内存用
             Pointer updatePointer = null;
             int size = 4;
@@ -86,9 +90,9 @@ public class MemoryWrite {
                 default:
             }
             //写入内存
-            boolean writeResult = Kernel32_DLL.INSTANCE.WriteProcessMemory(hProcess, lpBaseAddress, updatePointer, size, 0);
+            boolean writeResult =  Kernel32.INSTANCE.WriteProcessMemory(hProcess, lpBaseAddress, updatePointer, size, new IntByReference(0));
             //是否写入成功
-            lastError = Kernel32_DLL.INSTANCE.GetLastError();
+            int lastError = Kernel32.INSTANCE.GetLastError();
             if ((!writeResult) || lastError != 0) {
                 result.setLastError(lastError);
                 result.setMessage("内存写入发生错误,错误代码:" + lastError);
@@ -101,7 +105,7 @@ public class MemoryWrite {
             result.setLastError(-1);
             result.setMessage("写入失败,请检查输入值是否正确或超出范围!\n错误代码:" + e.getMessage());
         } finally {
-            Kernel32_DLL.INSTANCE.CloseHandle(hProcess);
+            Kernel32.INSTANCE.CloseHandle(hProcess);
         }
         return result;
     }
