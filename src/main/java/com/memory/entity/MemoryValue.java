@@ -1,5 +1,6 @@
 package com.memory.entity;
 
+import com.sun.jna.Pointer;
 import lombok.Data;
 
 /**
@@ -12,14 +13,8 @@ import lombok.Data;
 @Data
 public class MemoryValue {
 
-    private long address;
+    private Pointer address;
 
     private String value;
 
-    private String address16;
-
-
-    public String toString() {
-        return address16 + " " + value;
-    }
 }

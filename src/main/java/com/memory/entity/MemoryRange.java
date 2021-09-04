@@ -1,6 +1,7 @@
 package com.memory.entity;
 
 import com.sun.jna.Pointer;
+import lombok.Data;
 
 /**
  * 作者:Code菜鸟
@@ -9,23 +10,8 @@ import com.sun.jna.Pointer;
  * <p>
  * 保存内存的范围
  **/
+@Data
 public class MemoryRange {
     private Pointer minValue;
     private Pointer maxValue;
-
-    public Pointer getMinValue() {
-        return minValue;
-    }
-
-    public void setMinValue(Pointer minValue) {
-        this.minValue = minValue;
-    }
-
-    public Pointer getMaxValue() {
-        return maxValue;
-    }
-
-    public void setMaxValue(Pointer maxValue) {
-        this.maxValue = maxValue;
-    }
 }

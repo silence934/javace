@@ -2,16 +2,15 @@ package com.memory.event;
 
 import com.memory.entity.ExecuteResult;
 import com.memory.entity.MemoryRange;
-import com.memory.impl.KillProcess;
-import com.memory.impl.MemoryRangeQuery;
-import com.memory.impl.MemorySearchThread;
-import com.memory.impl.MemoryWrite;
+import com.memory.impl.*;
 import com.memory.wnd.MainWnd;
-import com.memory.wnd.ProcessChooseWnd;
 import com.sun.jna.Pointer;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.awt.event.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * MainWnd窗口的事件响应类
@@ -19,35 +18,21 @@ import java.awt.event.*;
  * 技术交流QQ:969422014
  * CSDN博客:http://blog.csdn.net/qq969422014
  *
- * @author fucong*/
+ * @author fucong
+ */
+@Slf4j
 public class MainWndEvent {
+
+    public static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
     private final MainWnd mainWnd;
-    private ProcessChooseWnd processChooseWnd = null;
-    private MemorySearchThread memorySearchThread = null;
+    private final KillProcess kill;
     private MemoryWrite memoryWriter = null;
-    private KillProcess kill = null;
 
     public MainWndEvent(MainWnd mainWnd) {
         this.mainWnd = mainWnd;
+        this.kill = new KillProcess();
     }
 
-    /**
-     * 打开进程按钮
-     **/
-    public ActionListener openProcessButton() {
-        return e -> {
-            //判断当前是否正在执行扫描动作L
-            if (memorySearchThread != null && memorySearchThread.isAlive()) {
-                JOptionPane.showMessageDialog(mainWnd, "扫描进行中,请等待扫描完成!", "提示", JOptionPane.QUESTION_MESSAGE);
-                return;
-            }
-            //对象NULL值判断
-            if (processChooseWnd == null) {
-                processChooseWnd = new ProcessChooseWnd(mainWnd);
-            }
-            processChooseWnd.setVisible(true);
-        };
-    }
 
     /**
      * 内存搜索按钮点击事件
@@ -59,20 +44,26 @@ public class MainWndEvent {
                 JOptionPane.showMessageDialog(mainWnd, "请先打开进程!", "ERROR", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            //获取用户输入的查询值
-            String text = mainWnd.searchText.getText().trim();
-
-            checkTest(text);
-
-            //执行查询线程,0代表内存搜索
-            memorySearchThread = new MemorySearchThread(mainWnd, text, 0);
-            memorySearchThread.start();
+            checkTest(mainWnd.searchText.getText().trim());
+            EXECUTOR_SERVICE.submit(new MemorySearchRunnable.FirstSearchRunnable(mainWnd));
         };
     }
 
 
+    /**
+     * 在次搜索按钮点击事件
+     **/
+    public ActionListener lastSearchButton() {
+        return e -> {
+            if (mainWnd.tableModel.getRowCount() == 0) {
+                return;
+            }
+            checkTest(mainWnd.searchText.getText().trim());
+            EXECUTOR_SERVICE.submit(new MemorySearchRunnable.NextSearchRunnable(mainWnd));
+        };
+    }
 
-    private void checkTest(String text){
+    private void checkTest(String text) {
         //判断用户输入的值是否合法
         if (!text.matches("-?[0-9]+\\.*[0-9]*")) {
             JOptionPane.showMessageDialog(mainWnd, "搜索值输入错误!", "ERROR", JOptionPane.ERROR_MESSAGE);
@@ -82,7 +73,7 @@ public class MainWndEvent {
             return;
         }
         //判断内存地址范围是否合法,这个判断只针对自定义内存范围
-        if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 2) {
+        if (mainWnd.memoryRangeBoBox.getSelectedIndex() == 2) {
             String startAddress = mainWnd.memoryStartAddress.getText().trim();
             String endAddress = mainWnd.memoryEndAddress.getText().trim();
             //是否为空
@@ -108,25 +99,6 @@ public class MainWndEvent {
                 return;
             }
         }
-    }
-
-
-    /**
-     * 在次搜索按钮点击事件
-     **/
-    public ActionListener lastSearchButton() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //判断查询列表中是否有值,如果没值,则表明用户没有执行内存查询操作,则该按钮无效
-                if (mainWnd.tableModel.getRowCount() == 0) {
-                    return;
-                }
-                //执行查询线程,1代表内存变化搜索
-                memorySearchThread = new MemorySearchThread(mainWnd, "0", 1);
-                memorySearchThread.start();
-            }
-        };
     }
 
     /**
@@ -157,18 +129,15 @@ public class MainWndEvent {
             String lpBaseAddress = mainWnd.memoryAddressText.getText().trim();
             String value = mainWnd.memoryUpdateValue.getText().trim();
             //判断输入值是否合法
-            if ((!lpBaseAddress.startsWith("0x"))) {
-                JOptionPane.showMessageDialog(mainWnd, "1.请先搜索內存地址,然後点击左边的列表选择内存地址\n\n2.手动输入正确的内存地址!\n\n注:内存地址均为16进制且以0x开头!", "提示", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            } else if (!value.matches("-?[0-9]+\\.*[0-9]*")) {
+            if (!value.matches("-?[0-9]+\\.*[0-9]*")) {
                 JOptionPane.showMessageDialog(mainWnd, "修改值只能是数字类型!", "ERROR", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             try {
                 //执行写入内存的操作
                 ExecuteResult result = memoryWriter.write(mainWnd.currentProcess.getProcessID(),
-                        new Pointer( Long.parseLong(lpBaseAddress.replace("0x", ""), 16)),
-                        value, mainWnd.memoryRangecomBoBox.getSelectedIndex());
+                        new Pointer(Long.parseLong(lpBaseAddress.replace("0x", ""), 16)),
+                        value, mainWnd.memoryRangeBoBox.getSelectedIndex());
                 if (result.getLastError() != 0) {
                     JOptionPane.showMessageDialog(mainWnd, result.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
                     return;
@@ -192,34 +161,16 @@ public class MainWndEvent {
      * 杀死进程点击事件
      */
     public ActionListener killProcessButton() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int answer = JOptionPane.showConfirmDialog(mainWnd, "确定杀死进程" + mainWnd.currentProcess.getName() + "?", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                if (answer != JOptionPane.YES_OPTION) {
-                    return;
-                }
-                if (kill == null) {
-                    kill = new KillProcess();
-                }
-
-                ExecuteResult executeResult = kill.kill(mainWnd.currentProcess.getProcessID());
-                if (executeResult.getLastError() != 0) {
-                    JOptionPane.showMessageDialog(mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-                } else {
-                    mainWnd.resetWindow();
-                }
+        return e -> {
+            int answer = JOptionPane.showConfirmDialog(mainWnd, "确定杀死进程" + mainWnd.currentProcess.getName() + "?", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (answer != JOptionPane.YES_OPTION) {
+                return;
             }
-        };
-    }
 
-    /**
-     * 重置按钮
-     */
-    public ActionListener resetButton() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+            ExecuteResult executeResult = kill.kill(mainWnd.currentProcess.getProcessID());
+            if (executeResult.getLastError() != 0) {
+                JOptionPane.showMessageDialog(mainWnd, executeResult.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+            } else {
                 mainWnd.resetWindow();
             }
         };
@@ -229,35 +180,24 @@ public class MainWndEvent {
      * 停止扫描按钮事件
      **/
     public ActionListener stopButton() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int answer = JOptionPane.showConfirmDialog(mainWnd, "确定停止当前内存扫描?不建议这么操作!", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                if (answer != JOptionPane.YES_OPTION) {
-                    return;
-                }
-                //判断当前是否正在执行扫描动作
-                if (memorySearchThread != null
-                        && memorySearchThread.isAlive()) {
-                    if (!memorySearchThread.stopRun()) {
-                        JOptionPane.showMessageDialog(mainWnd, "终止任务失败!", "ERROR", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                }
-                //界面操作
-                mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getName() + "扫描完成!");
-                mainWnd.stopButton.setVisible(false);
-                mainWnd.firstSearchButton.setEnabled(true);
-                mainWnd.lastSearchButton.setEnabled(true);
-                mainWnd.writeMemoryButton.setEnabled(true);
-                mainWnd.killButton.setEnabled(true);
-                mainWnd.progressBar.setIndeterminate(false);
-                mainWnd.memoryRangecomBoBox.setEnabled(true);
-                mainWnd.resetButton.setEnabled(true);
+        return e -> {
+            int answer = JOptionPane.showConfirmDialog(mainWnd, "确定停止当前内存扫描?不建议这么操作!", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (answer != JOptionPane.YES_OPTION) {
+                return;
             }
+            MemorySearchImpl.setStop(true);
+            //界面操作
+            mainWnd.statusLabel.setText("进程" + mainWnd.currentProcess.getName() + "扫描完成!");
+            mainWnd.stopButton.setVisible(false);
+            mainWnd.firstSearchButton.setEnabled(true);
+            mainWnd.lastSearchButton.setEnabled(true);
+            mainWnd.writeMemoryButton.setEnabled(true);
+            mainWnd.killButton.setEnabled(true);
+            mainWnd.progressBar.setIndeterminate(false);
+            mainWnd.memoryRangeBoBox.setEnabled(true);
+            mainWnd.resetButton.setEnabled(true);
         };
     }
-
 
     /**
      * 内存范围点击事件
@@ -273,7 +213,7 @@ public class MainWndEvent {
                 mainWnd.memoryEndAddress.setEditable(false);
             }
             //判断是否获取系统内存范围
-            if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 0) {
+            if (mainWnd.memoryRangeBoBox.getSelectedIndex() == 0) {
                 MemoryRangeQuery query = new MemoryRangeQuery();
                 ExecuteResult executeResult = query.queryProcessRange(mainWnd.currentProcess);
                 if (executeResult.getLastError() != 0) {
@@ -283,9 +223,9 @@ public class MainWndEvent {
                     return;
                 }
                 MemoryRange range = (MemoryRange) executeResult.getValue();
-                processChooseWnd.mainWnd.memoryStartAddress.setText(range.getMinValue().toString());
-                processChooseWnd.mainWnd.memoryEndAddress.setText(range.getMaxValue().toString());
-            } else if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 1) {
+                mainWnd.processChooseWnd.mainWnd.memoryStartAddress.setText(range.getMinValue().toString());
+                mainWnd.processChooseWnd.mainWnd.memoryEndAddress.setText(range.getMaxValue().toString());
+            } else if (mainWnd.memoryRangeBoBox.getSelectedIndex() == 1) {
                 MemoryRangeQuery query = new MemoryRangeQuery();
                 ExecuteResult executeResult = query.querySystemRange();
                 if (executeResult.getLastError() != 0) {
@@ -295,7 +235,7 @@ public class MainWndEvent {
                 MemoryRange range = (MemoryRange) executeResult.getValue();
                 mainWnd.memoryStartAddress.setText(range.getMinValue().toString());
                 mainWnd.memoryEndAddress.setText(range.getMaxValue().toString());
-            } else if (mainWnd.memoryRangecomBoBox.getSelectedIndex() == 2) {
+            } else if (mainWnd.memoryRangeBoBox.getSelectedIndex() == 2) {
                 mainWnd.memoryStartAddress.setEditable(true);
                 mainWnd.memoryEndAddress.setEditable(true);
                 mainWnd.memoryStartAddress.setText("");

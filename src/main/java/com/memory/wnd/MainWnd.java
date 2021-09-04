@@ -1,6 +1,8 @@
 package com.memory.wnd;
 
 import com.jtattoo.plaf.aluminium.AluminiumLookAndFeel;
+import com.memory.constant.DataType;
+import com.memory.constant.WayOfComparison;
 import com.memory.entity.MemoryRange;
 import com.memory.event.MainWndEvent;
 import oshi.software.os.OSProcess;
@@ -26,18 +28,20 @@ public class MainWnd extends JFrame {
     public JButton firstSearchButton;
     public JButton lastSearchButton;
     public JProgressBar progressBar;
-    public JComboBox<String> searchType;
-    public DefaultTableModel tableModel;
+    public JComboBox<WayOfComparison> comparisonWay;
+    public MemoryValueTable tableModel;
     public JButton writeMemoryButton;
     public JButton killButton;
-    public JComboBox<String> searchDataType;
+    public JComboBox<DataType> searchDataType;
     public JButton resetButton;
     public JButton stopButton;
     public JLabel searchResultLabel;
+    public JButton openProcessButton;
     public JTextField memoryStartAddress;
     public JTextField memoryEndAddress;
-    public JComboBox<String> memoryRangecomBoBox;
+    public JComboBox<String> memoryRangeBoBox;
     public MemoryRange range;
+    public ProcessChooseWnd processChooseWnd;
 
     public MainWnd() {
         setTitle("內存修改工具1.0");
@@ -61,10 +65,7 @@ public class MainWnd extends JFrame {
         getContentPane().add(scrollPane);
 
         table = new JTable();
-        tableModel = new DefaultTableModel(
-                new Object[][]{},
-                new String[]{"內存地址", "值"}
-        );
+        tableModel = new MemoryValueTable();
         MainWndEvent event = new MainWndEvent(this);
         table.addMouseListener(event.tableMouseClick());
         table.setModel(tableModel);
@@ -75,8 +76,9 @@ public class MainWnd extends JFrame {
         searchResultLabel.setBounds(10, 59, 426, 15);
         getContentPane().add(searchResultLabel);
 
-        JButton openProcessButton = new JButton("打开进程");
-        openProcessButton.addActionListener(event.openProcessButton());
+        openProcessButton = new JButton("打开进程");
+        processChooseWnd = new ProcessChooseWnd(this);
+        openProcessButton.addActionListener(e -> processChooseWnd.setVisible(true));
         openProcessButton.setBounds(203, 84, 233, 23);
         getContentPane().add(openProcessButton);
 
@@ -86,24 +88,24 @@ public class MainWnd extends JFrame {
 
         searchText = new JTextField();
         searchText.setBounds(270, 114, 166, 21);
-        getContentPane().add(searchText);
         searchText.setColumns(10);
+        getContentPane().add(searchText);
 
         JLabel searchType = new JLabel("搜索类型:");
         searchType.setBounds(213, 142, 53, 15);
         getContentPane().add(searchType);
 
-        this.searchType = new JComboBox<>();
-        this.searchType.setModel(new DefaultComboBoxModel<>(new String[]{"精确值", "比搜索值大", "比搜索值小"}));
-        this.searchType.setBounds(270, 139, 166, 21);
-        getContentPane().add(this.searchType);
+        this.comparisonWay = new JComboBox<>();
+        this.comparisonWay.setModel(new DefaultComboBoxModel<>(WayOfComparison.getAll()));
+        this.comparisonWay.setBounds(270, 139, 166, 21);
+        getContentPane().add(this.comparisonWay);
 
         JLabel lblNewLabel_2 = new JLabel("数据类型:");
         lblNewLabel_2.setBounds(213, 170, 53, 15);
         getContentPane().add(lblNewLabel_2);
 
         searchDataType = new JComboBox<>();
-        searchDataType.setModel(new DefaultComboBoxModel<>(new String[]{"整数 int", "短整数 short", "长整数 long", "单精度浮点 float", "双精度浮点 double", "字节 byte"}));
+        searchDataType.setModel(new DefaultComboBoxModel<>(DataType.getAll()));
         searchDataType.setBounds(270, 167, 166, 21);
         getContentPane().add(searchDataType);
 
@@ -147,9 +149,6 @@ public class MainWnd extends JFrame {
         writeMemoryButton.addActionListener(event.updateMemoryValueButton());
         getContentPane().add(writeMemoryButton);
 
-        JLabel lblQq = new JLabel("QQ:969422014");
-        lblQq.setBounds(349, 434, 87, 15);
-        getContentPane().add(lblQq);
 
         killButton = new JButton("杀死进程");
         killButton.addActionListener(event.killProcessButton());
@@ -160,7 +159,7 @@ public class MainWnd extends JFrame {
         resetButton = new JButton("清空搜索結果");
         resetButton.setEnabled(false);
         resetButton.setBounds(80, 401, 113, 23);
-        resetButton.addActionListener(event.resetButton());
+        resetButton.addActionListener((e) -> resetWindow());
         getContentPane().add(resetButton);
 
         stopButton = new JButton("停止扫描");
@@ -193,12 +192,12 @@ public class MainWnd extends JFrame {
         label_7.setBounds(213, 202, 53, 15);
         getContentPane().add(label_7);
 
-        memoryRangecomBoBox = new JComboBox<>();
-        memoryRangecomBoBox.setEnabled(false);
-        memoryRangecomBoBox.setModel(new DefaultComboBoxModel<>(new String[]{"进程所占内存范围", "整个系统内存范围", "自定义內存范围"}));
-        memoryRangecomBoBox.setBounds(270, 198, 166, 21);
-        memoryRangecomBoBox.addItemListener(event.memoryRangeItem());
-        getContentPane().add(memoryRangecomBoBox);
+        memoryRangeBoBox = new JComboBox<>();
+        memoryRangeBoBox.setEnabled(false);
+        memoryRangeBoBox.setModel(new DefaultComboBoxModel<>(new String[]{"进程所占内存范围", "整个系统内存范围", "自定义內存范围"}));
+        memoryRangeBoBox.setBounds(270, 198, 166, 21);
+        memoryRangeBoBox.addItemListener(event.memoryRangeItem());
+        getContentPane().add(memoryRangeBoBox);
 
         initialize();
     }
@@ -239,9 +238,10 @@ public class MainWnd extends JFrame {
         searchResultLabel.setText("搜索结果:");
         progressBar.setIndeterminate(false);
         firstSearchButton.setEnabled(true);
+        openProcessButton.setEnabled(true);
         stopButton.setVisible(false);
-        memoryRangecomBoBox.setEnabled(false);
-        memoryRangecomBoBox.setSelectedIndex(0);
+        memoryRangeBoBox.setEnabled(false);
+        memoryRangeBoBox.setSelectedIndex(0);
         memoryStartAddress.setText("");
         memoryEndAddress.setText("");
         resetButton.setEnabled(false);

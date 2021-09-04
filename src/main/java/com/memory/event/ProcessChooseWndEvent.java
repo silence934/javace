@@ -35,14 +35,14 @@ public class ProcessChooseWndEvent {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     //获取点击值
-                    OSProcess osProcess = processChooseWnd.list.getSelectedValue();
+                    OSProcess osProcess = processChooseWnd.list.getSelectedValue().getProcess();
                     if (osProcess == null) {
                         return;
                     }
                     processChooseWnd.setVisible(false);
                     //判断内存范围下拉框是否显示正确
-                    if (processChooseWnd.mainWnd.memoryRangecomBoBox.getSelectedIndex() != 0) {
-                        processChooseWnd.mainWnd.memoryRangecomBoBox.setSelectedIndex(0);
+                    if (processChooseWnd.mainWnd.memoryRangeBoBox.getSelectedIndex() != 0) {
+                        processChooseWnd.mainWnd.memoryRangeBoBox.setSelectedIndex(0);
                     }
                     //获取程序在内存中的范围
                     MemoryRangeQuery query = new MemoryRangeQuery();
@@ -54,11 +54,11 @@ public class ProcessChooseWndEvent {
                         return;
                     }
                     MemoryRange range = (MemoryRange) executeResult.getValue();
-                    processChooseWnd.mainWnd.memoryStartAddress.setText(""+Pointer.nativeValue(range.getMinValue()));
-                    processChooseWnd.mainWnd.memoryEndAddress.setText(""+Pointer.nativeValue(range.getMaxValue()));
-                    processChooseWnd.mainWnd.range=range;
+                    processChooseWnd.mainWnd.memoryStartAddress.setText(Long.toString(Pointer.nativeValue(range.getMinValue()), 16));
+                    processChooseWnd.mainWnd.memoryEndAddress.setText(Long.toString(Pointer.nativeValue(range.getMaxValue()), 16));
+                    processChooseWnd.mainWnd.range = range;
                     //界面显示处理
-                    processChooseWnd.mainWnd.memoryRangecomBoBox.setEnabled(true);
+                    processChooseWnd.mainWnd.memoryRangeBoBox.setEnabled(true);
                     processChooseWnd.mainWnd.statusLabel.setText(osProcess.getName());
                     processChooseWnd.mainWnd.currentProcess = osProcess;
                     processChooseWnd.mainWnd.memoryAddressText.setEditable(true);

@@ -1,9 +1,13 @@
 package com.memory.impl;
 
-import com.memory.entity.ExecuteResult;
+import com.memory.constant.DataType;
+import com.memory.constant.WayOfComparison;
+import com.memory.entity.MemoryRange;
 import com.memory.entity.MemoryValue;
+import com.memory.entity.SearchCondition;
 import com.memory.interfaces.Kernel32_DLL;
-import com.memory.quantity.OpenProcess;
+import com.memory.wnd.MainWnd;
+import com.memory.wnd.MemoryValueTable;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.BaseTSD;
@@ -12,66 +16,52 @@ import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
-/**
- * 内存搜索实现类
- * 作者:Code菜鸟
- * 技术交流QQ:969422014
- * CSDN博客:http://blog.csdn.net/qq969422014
- */
 @Slf4j
 public class MemorySearchImpl {
-    //统计内存扫描数量
-    public int memoryScore = 0;
-
-    //保存搜索
-    public List<MemoryValue> searchResult = Collections.synchronizedList(new ArrayList<MemoryValue>());
 
 
+    private static boolean isStop = false;
 
+    public MemorySearchImpl() {
 
-    /**
-     * 值搜索
-     * pid 进程ID
-     * value 需要搜索的值
-     * searchDataType 搜索的实际数据类型 0=INT 1=Short 2=long 3=float 4=double 5=byte
-     * equalsSearchValue 与搜索值相比较 0等于,1大于,2小于
-     * startBaseAddr 搜索开始的内存基址
-     * endBaseAddr 搜索结束的内存基址
-     * increasing 搜索地址的递增量
-     **/
-    public ExecuteResult search(int pid, String searchValue, int searchDataType, int equalsSearchValue, Pointer startBaseAddress, Pointer endBaseAddress) {
-        if (searchResult.size() != 0) {
-            searchResult.clear();
-        }
-        ExecuteResult executeResult = new ExecuteResult();
-        memoryScore = 0;
+    }
+
+    public static void setStop(boolean stop) {
+        isStop = stop;
+    }
+
+    public void firstSearch(int pid, SearchCondition searchCondition, MemoryRange ranger, MainWnd mainWnd) {
+        isStop = false;
+        MemoryValueTable memoryValueTable = mainWnd.tableModel;
+        memoryValueTable.setRowCount(0);
+
         //根据进程ID,打开进程,返回进程句柄
-        WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS , false, pid);
-
-
+        WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
         //判断进程句柄是否打开成功
         int lastError = Kernel32_DLL.INSTANCE.GetLastError();
-        executeResult.setLastError(lastError);
         if (lastError == 5) {
-            executeResult.setMessage("无法打开进程,系统Debug权限获取失败,请以管理员方式重新运行程序!");
-            return executeResult;
+            JOptionPane.showMessageDialog(mainWnd, "无法打开进程,系统Debug权限获取失败,请以管理员方式重新运行程序!", "ERROR", JOptionPane.ERROR_MESSAGE);
         } else if (lastError != 0) {
-            executeResult.setMessage("无法打开该进程,OpenProcess函数返回错误码:" + lastError);
-            return executeResult;
+            JOptionPane.showMessageDialog(mainWnd, "无法打开该进程,OpenProcess函数返回错误码:" + lastError, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
-
-        //保存查询内存结果信息的结构体类
-        //MEMORY_BASIC_INFORMATION memoryInfo = new MEMORY_BASIC_INFORMATION();
         //对比的值
-        double searchValueDouble = Double.parseDouble(searchValue);
-        WinNT.MEMORY_BASIC_INFORMATION information=new WinNT.MEMORY_BASIC_INFORMATION();
-        try {
-            //根据基址遍历内存
-            while (Pointer.nativeValue(startBaseAddress) <= Pointer.nativeValue(endBaseAddress)) {
+        double exceptionValue = searchCondition.getValue();
 
+        WinNT.MEMORY_BASIC_INFORMATION information = new WinNT.MEMORY_BASIC_INFORMATION();
+        try {
+            Pointer startBaseAddress = ranger.getMinValue();
+            //根据基址遍历内存
+            int memoryScore = 0;
+            while (Pointer.nativeValue(startBaseAddress) <= Pointer.nativeValue(ranger.getMaxValue())) {
+                if (isStop) {
+                    log.debug("收到停止消息");
+                    break;
+                }
                 BaseTSD.SIZE_T size_t = Kernel32.INSTANCE.VirtualQueryEx(hProcess,
                         startBaseAddress, information, new BaseTSD.SIZE_T(information.size()));
 
@@ -85,133 +75,112 @@ public class MemorySearchImpl {
                     //判断内存是否可读可写
                     if (vpe || information.protect.intValue() == WinNT.PAGE_READWRITE) {
                         //声明一块内存空间,保存读取内存块的值,这个空间的大小与内存块大小相同
-                        Pointer buffer = new Memory(information.regionSize.longValue());
-
+                        Memory buffer = new Memory(information.regionSize.longValue());
                         //判断是否读取成功
                         if (Kernel32.INSTANCE.ReadProcessMemory(hProcess, startBaseAddress, buffer,
                                 information.regionSize.intValue(), new IntByReference(0))) {
-
-                            //根据搜索类型查找对应数据
-                            for (int i = 0; i < information.regionSize.intValue(); i += 4) {
-                                double memoryValue = buffer.getInt(i);
-                                //统计内存数量
-                                memoryScore++;
-                                //与搜索值相比较释放符合条件 0等于,1大于,2小于
-                                if ((equalsSearchValue == 0 && memoryValue == searchValueDouble)) {
-                                    MemoryValue temp = new MemoryValue();
-                                    temp.setAddress(Pointer.nativeValue(startBaseAddress) + i);
-                                    temp.setAddress16("0x" + Long.toString((Pointer.nativeValue(startBaseAddress) + i), 16).toUpperCase());
-                                    temp.setValue(memoryValue + "");
-                                    searchResult.add(temp);
-                                }
-                            }
+                            memoryScore += traverseMemory(startBaseAddress, buffer, memoryValueTable, searchCondition.getDataType(), searchCondition.getWay(), exceptionValue);
                         }
-
                         //释放内存
                         ReferenceFree.free(buffer);
                     }
                 }
                 //设置基地址偏移
-                startBaseAddress = new Pointer( Pointer.nativeValue(information.baseAddress) + information.regionSize.longValue());
+                startBaseAddress = new Pointer(Pointer.nativeValue(information.baseAddress) + information.regionSize.longValue());
             }
-
+            mainWnd.searchResultLabel.setText("搜索结果:共计检索内存" + memoryScore + "条,符合条件" + memoryValueTable.getRowCount() + "条记录!");
         } catch (Exception e) {
             e.printStackTrace();
-            executeResult.setLastError(-1);
-            executeResult.setMessage("内存地址扫描错误!\n" + e.getMessage());
-            return executeResult;
+            JOptionPane.showMessageDialog(mainWnd, "内存地址扫描错误!\n" + e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
         } finally {
             //释放资源
             Kernel32.INSTANCE.CloseHandle(hProcess);
         }
-        return executeResult;
     }
 
-    /**
-     * 再次搜索实现
-     * pid 进程ID
-     * addressList 搜索的内存地址列表
-     * searchDataType 搜索的数据类型
-     **/
-    public ExecuteResult search(int pid, List<MemoryValue> addressList, int searchDataType) {
-        ExecuteResult executeResult = new ExecuteResult();
-        if (searchResult.size() != 0) {
-            searchResult.clear();
-        }
-        memoryScore = 0;
-        //获取进程句柄
-        int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
+
+    public void nextSearch(int pid, SearchCondition searchCondition, MainWnd mainWnd) {
+        isStop = false;
+        MemoryValueTable memoryValueTable = mainWnd.tableModel;
+        List<MemoryValue> addressList = new ArrayList<>(memoryValueTable.getValues());
+        memoryValueTable.setRowCount(0);
+
+        DataType dataType = searchCondition.getDataType();
+        WayOfComparison way = searchCondition.getWay();
+        double exceptionValue = searchCondition.getValue();
+
+        WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
         try {
-            //保存读取的新值
-            Map<String, MemoryValue> tableValueMap = new HashMap<>();
-            //声明一块内存,保存读取值
-            Pointer readResult = new Memory(1024);
-            for (int i = 0; i < addressList.size(); i++) {
-                memoryScore++;
-                //将0xffff table中的值转换为int类型
-                int temp = Integer.parseInt(addressList.get(i).getAddress16().replace("0x", ""), 16);
-                if (Kernel32_DLL.INSTANCE.ReadProcessMemory(handle, temp, readResult, 1024, 0)) {
-                    MemoryValue m = new MemoryValue();
-                    m.setAddress(temp);
-                    m.setAddress16("0x" + (Integer.toString(temp, 16).toUpperCase()));
-                    //根据搜索类型读取对应数据
-                    switch (searchDataType) {
-                        //整形int
-                        case 0:
-                            m.setValue(readResult.getInt(0) + "");
-                            break;
-                        //短整形short
-                        case 1:
-                            m.setValue(readResult.getShort(0) + "");
-                            break;
-                        //长整形Long
-                        case 2:
-                            m.setValue(readResult.getLong(0) + "");
-                            break;
-                        //单精度浮点 float
-                        case 3:
-                            m.setValue(readResult.getFloat(0) + "");
-                            break;
-                        //双精度浮点 double
-                        case 4:
-                            m.setValue(readResult.getDouble(0) + "");
-                            break;
-                        //字节byte
-                        case 5:
-                            m.setValue(readResult.getByte(0) + "");
-                            break;
-                        default:
+            Memory buffer = new Memory(dataType.getDataSize());
+            for (MemoryValue memoryValue : addressList) {
+                if (isStop) {
+                    log.debug("收到停止消息");
+                    break;
+                }
+                if (Kernel32.INSTANCE.ReadProcessMemory(hProcess, memoryValue.getAddress(), buffer, (int) buffer.size(), new IntByReference(0))) {
+                    double value = getMemoryValue(0, buffer, dataType);
+                    //与搜索值相比较释放符合条件 0等于,1大于,-1小于
+                    if ((way.getValue() == Double.compare(exceptionValue, value))) {
+                        MemoryValue temp = new MemoryValue();
+                        temp.setAddress(memoryValue.getAddress());
+                        temp.setValue("" + value);
+                        memoryValueTable.addRow(temp);
                     }
-                    tableValueMap.put(m.getAddress16(), m);
                 }
             }
-            //释放内存
-            ReferenceFree.free(readResult);
-            //移除列表中没有发生变化的内存值
-            for (int i = 0; i < addressList.size(); i++) {
-                String key = addressList.get(i).getAddress16();
-                String value = addressList.get(i).getValue();
-                if (tableValueMap.get(key) != null
-                        && Double.parseDouble(tableValueMap.get(key).getValue()) == Double.parseDouble(value)) {
-                    tableValueMap.remove(key);
-                }
+            ReferenceFree.free(buffer);
+            int lastError = Kernel32.INSTANCE.GetLastError();
+            if (lastError != 0) {
+                JOptionPane.showMessageDialog(mainWnd, "搜索内存发生错误!错误代码:" + lastError, "ERROR", JOptionPane.ERROR_MESSAGE);
             }
-            //搜索结果
-            for (String key : tableValueMap.keySet()) {
-                searchResult.add(tableValueMap.get(key));
-            }
-            executeResult.setLastError(Kernel32_DLL.INSTANCE.GetLastError());
-            if (executeResult.getLastError() != 0) {
-                executeResult.setMessage("搜索内存发生错误!错误代码:" + executeResult.getLastError());
-            }
+            mainWnd.searchResultLabel.setText("搜索结果:共计检索内存" + addressList.size() + "条,符合条件" + memoryValueTable.getRowCount() + "条记录!");
         } catch (Exception e) {
             e.printStackTrace();
-            executeResult.setLastError(-1);
-            executeResult.setMessage("内存地址扫描错误!\n" + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(mainWnd, "内存地址扫描错误!\n" + e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
         } finally {
             //资源释放
-            Kernel32_DLL.INSTANCE.CloseHandle(handle);
+            Kernel32.INSTANCE.CloseHandle(hProcess);
         }
-        return executeResult;
+    }
+
+
+    private int traverseMemory(Pointer startBaseAddress, Memory buffer, MemoryValueTable memoryValueTable, DataType dataType, WayOfComparison way, double exceptionValue) {
+        int memoryScore = 0;
+        for (int i = 0; i < buffer.size(); i += dataType.getDataSize()) {
+            if (isStop) {
+                log.debug("收到停止消息");
+                break;
+            }
+            memoryScore++;
+            double memoryValue = getMemoryValue(i, buffer, dataType);
+            if ((way.getValue() == Double.compare(exceptionValue, memoryValue))) {
+                MemoryValue temp = new MemoryValue();
+                temp.setAddress(startBaseAddress.share(i));
+                temp.setValue("" + memoryValue);
+                memoryValueTable.addRow(temp);
+            }
+        }
+        return memoryScore;
+    }
+
+
+    private double getMemoryValue(int offset, Memory buffer, DataType dataType) {
+        switch (dataType) {
+            case INT:
+                return buffer.getInt(offset);
+            case BYTE:
+                return buffer.getByte(offset);
+            case LONG:
+                return buffer.getLong(offset);
+            case FLOAT:
+                return buffer.getFloat(offset);
+            case SHORT:
+                return buffer.getShort(offset);
+            case DOUBLE:
+                return buffer.getDouble(offset);
+            default:
+                return 0;
+        }
     }
 }

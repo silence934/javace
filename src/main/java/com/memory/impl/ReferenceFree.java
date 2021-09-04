@@ -14,7 +14,6 @@ public class ReferenceFree {
     private ReferenceFree() {
     }
 
-    ;
 
     public static void free(PointerType p) {
         //释放指针

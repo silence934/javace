@@ -1,5 +1,6 @@
 package com.memory.wnd;
 
+import com.memory.entity.CeProcess;
 import com.memory.event.ProcessChooseWndEvent;
 import oshi.SystemInfo;
 import oshi.software.os.OSProcess;
@@ -23,7 +24,7 @@ public class ProcessChooseWnd extends JDialog {
 
     private static final long serialVersionUID = 1L;
 
-    public JList<OSProcess> list;
+    public JList<CeProcess> list;
 
     public MainWnd mainWnd;
 
@@ -34,41 +35,64 @@ public class ProcessChooseWnd extends JDialog {
         setResizable(false);
         setBounds(100, 100, 242, 330);
         setLocationRelativeTo(null);
-        getContentPane().setLayout(new BorderLayout());
-        JPanel contentPanel = new JPanel();
-        contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-        getContentPane().add(contentPanel, BorderLayout.CENTER);
-        contentPanel.setLayout(null);
+        // getContentPane().setLayout(new BorderLayout());
+
 
         ProcessChooseWndEvent event = new ProcessChooseWndEvent(this);
-
-        //todo 刷新
+        DefaultListModel<CeProcess> listModel = new DefaultListModel<>();
         list = new JList<>();
-        list.setModel(getProcess(process ->process.getName().contains("Plants") ));
+        list.setModel(listModel);
         list.addMouseListener(event.processListMouseClient());
 
         JScrollPane scrollPane = new JScrollPane();
-        scrollPane.setBounds(0, 0, 236, 298);
+        scrollPane.setBounds(0, 25, 236, 298);
         scrollPane.setViewportView(list);
+
+        JTextField searchText = new JTextField();
+        searchText.setBounds(1, 1, 154, 23);
+        searchText.setColumns(10);
+
+        JButton searchButton = new JButton("搜索");
+        searchButton.setBounds(155, 1, 81, 23);
+        searchButton.setVisible(true);
+        searchButton.addActionListener((e) -> {
+            // MainWndEvent.EXECUTOR_SERVICE.submit(new ScanProcessRunner(listModel, p -> true));
+            new ScanProcessRunner(listModel, p -> p.getName().contains(searchText.getText().trim())).run();
+        });
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+        contentPanel.setLayout(null);
         contentPanel.add(scrollPane);
+        contentPanel.add(searchButton);
+        contentPanel.add(searchText);
+        getContentPane().add(contentPanel, BorderLayout.CENTER);
 
     }
 
 
-    private DefaultListModel<OSProcess> getProcess(Predicate<OSProcess> filter){
+    private static class ScanProcessRunner implements Runnable {
 
-        DefaultListModel<OSProcess> defaultListModel=new DefaultListModel<>();
+        private final DefaultListModel<CeProcess> listModel;
 
-        SystemInfo systemInfo=new SystemInfo();
-        OperatingSystem operatingSystem = systemInfo.getOperatingSystem();
+        private final Predicate<OSProcess> predicate;
 
-         operatingSystem.getProcesses().stream().filter(filter)
-                .sorted(Comparator.comparing(OSProcess::getName))
-                 .forEach(defaultListModel::addElement);
+        public ScanProcessRunner(DefaultListModel<CeProcess> listModel, Predicate<OSProcess> predicate) {
+            this.listModel = listModel;
+            this.predicate = predicate;
+        }
 
-         return defaultListModel;
+        @Override
+        public void run() {
+            listModel.clear();
+            SystemInfo systemInfo = new SystemInfo();
+            OperatingSystem operatingSystem = systemInfo.getOperatingSystem();
+
+            operatingSystem.getProcesses().stream().filter(predicate)
+                    .sorted(Comparator.comparing(OSProcess::getName))
+                    .forEach(p -> listModel.addElement(new CeProcess(p)));
+        }
     }
-
 
 
 }
