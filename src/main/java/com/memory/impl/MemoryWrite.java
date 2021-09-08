@@ -1,9 +1,6 @@
 package com.memory.impl;
 
 import com.memory.entity.ExecuteResult;
-import com.memory.interfaces.Kernel32_DLL;
-import com.memory.quantity.OpenProcess;
-import com.memory.structure.MEMORY_BASIC_INFORMATION;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.BaseTSD;
@@ -32,7 +29,7 @@ public class MemoryWrite {
 
 
         try {
-            //判断内存地址是否合法幷且是否满足读写权限
+            //判断内存地址是否合法并且是否满足读写权限
             WinNT.MEMORY_BASIC_INFORMATION lpBuffer=new WinNT.MEMORY_BASIC_INFORMATION();
             Kernel32.INSTANCE.VirtualQueryEx(hProcess, lpBaseAddress, lpBuffer, new BaseTSD.SIZE_T(lpBuffer.size()));
 

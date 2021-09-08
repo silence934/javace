@@ -12,6 +12,7 @@ import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.BaseTSD;
 import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class MemorySearchImpl {
         //根据进程ID,打开进程,返回进程句柄
         WinNT.HANDLE hProcess = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
         //判断进程句柄是否打开成功
-        int lastError = Kernel32_DLL.INSTANCE.GetLastError();
+        int lastError = Kernel32.INSTANCE.GetLastError();
         if (lastError == 5) {
             JOptionPane.showMessageDialog(mainWnd, "无法打开进程,系统Debug权限获取失败,请以管理员方式重新运行程序!", "ERROR", JOptionPane.ERROR_MESSAGE);
         } else if (lastError != 0) {
@@ -62,16 +63,16 @@ public class MemorySearchImpl {
                     log.debug("收到停止消息");
                     break;
                 }
-                BaseTSD.SIZE_T size_t = Kernel32.INSTANCE.VirtualQueryEx(hProcess,
+                BaseTSD.SIZE_T size = Kernel32.INSTANCE.VirtualQueryEx(hProcess,
                         startBaseAddress, information, new BaseTSD.SIZE_T(information.size()));
 
-                if (size_t.intValue() == 0) {
+                if (size.intValue() == 0) {
                     break;
                 }
                 //判断内存是否已提交,非空闲内存
                 if (information.state.intValue() == WinNT.MEM_COMMIT) {
                     //更改内存保护属性为可写可读,成功返回TRUE,执行这个函数,OpenProcess函数必须为PROCESS_ALL_ACCESS
-                    boolean vpe = Kernel32_DLL.INSTANCE.VirtualProtectEx(Pointer.nativeValue(hProcess.getPointer()), Pointer.nativeValue(startBaseAddress), information.regionSize.intValue(), WinNT.PAGE_READWRITE, information.protect.intValue());
+                    boolean vpe = Kernel32_DLL.INSTANCE.VirtualProtectEx(hProcess, startBaseAddress, size, new WinDef.DWORD(WinNT.PAGE_READWRITE), new IntByReference());
                     //判断内存是否可读可写
                     if (vpe || information.protect.intValue() == WinNT.PAGE_READWRITE) {
                         //声明一块内存空间,保存读取内存块的值,这个空间的大小与内存块大小相同

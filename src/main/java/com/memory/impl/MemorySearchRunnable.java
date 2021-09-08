@@ -52,7 +52,6 @@ public class MemorySearchRunnable {
         mainWnd.openProcessButton.setEnabled(true);
     }
 
-
     public static class FirstSearchRunnable implements Runnable {
 
         private final MainWnd mainWnd;

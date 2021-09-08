@@ -26,11 +26,12 @@ public class MainWndEvent {
     public static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
     private final MainWnd mainWnd;
     private final KillProcess kill;
-    private MemoryWrite memoryWriter = null;
+    private final MemoryWrite memoryWriter;
 
     public MainWndEvent(MainWnd mainWnd) {
         this.mainWnd = mainWnd;
         this.kill = new KillProcess();
+        this.memoryWriter = new MemoryWrite();
     }
 
 
@@ -122,9 +123,6 @@ public class MainWndEvent {
      */
     public ActionListener updateMemoryValueButton() {
         return e -> {
-            if (memoryWriter == null) {
-                memoryWriter = new MemoryWrite();
-            }
             //获取输入框的值
             String lpBaseAddress = mainWnd.memoryAddressText.getText().trim();
             String value = mainWnd.memoryUpdateValue.getText().trim();

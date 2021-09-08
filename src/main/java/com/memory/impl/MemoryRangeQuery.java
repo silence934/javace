@@ -45,18 +45,18 @@ public class MemoryRangeQuery {
                 return executeResult;
             } else if (lastError == 299) {
                 //如果为299，说明只有部分权限,判断该进程是否是64位进程  声明INT指针，保存IsWow64Process返回的值
-                IntByReference Wow64Process = new IntByReference();
+                IntByReference wow64Process = new IntByReference();
                 int handle = Kernel32_DLL.INSTANCE.OpenProcess(OpenProcess.PROCESS_ALL_ACCESS, false, pid);
-                if (Kernel32_DLL.INSTANCE.IsWow64Process(handle, Wow64Process)) {
+                if (Kernel32_DLL.INSTANCE.IsWow64Process(handle, wow64Process)) {
                     //如果为64位进程，那么久获取系统的内存范围
-                    if (Wow64Process.getValue() == 0) {
+                    if (wow64Process.getValue() == 0) {
                         executeResult = querySystemRange();
                     }
                 } else {
                     executeResult.setMessage("无法打开该进程,错误代码:" + lastError);
                 }
                 //释放内存
-                ReferenceFree.free(Wow64Process);
+                ReferenceFree.free(wow64Process);
                 Kernel32_DLL.INSTANCE.CloseHandle(handle);
                 return executeResult;
             } else if (lastError != 0) {

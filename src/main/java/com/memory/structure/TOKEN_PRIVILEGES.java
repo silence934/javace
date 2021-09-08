@@ -47,6 +47,7 @@ public class TOKEN_PRIVILEGES extends Structure {
         this.read();
     }
 
+    @Override
     protected List<String> getFieldOrder() {
         return Arrays.asList(new String[]{"PrivilegeCount", "Privileges"});
     }

@@ -1,9 +1,14 @@
 package com.memory.interfaces;
 
-import com.memory.structure.*;
+import com.memory.structure.MEMORY_BASIC_INFORMATION;
+import com.memory.structure.MODULEENTRY32;
+import com.memory.structure.PROCESSENTRY32;
+import com.memory.structure.SYSTEM_INFO;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
-import com.sun.jna.platform.win32.Tlhelp32;
+import com.sun.jna.platform.win32.BaseTSD;
+import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
@@ -208,7 +213,7 @@ public interface Kernel32_DLL extends StdCallLibrary {
      * 函数具体详情,请参阅MSDN文档
      * http://msdn.microsoft.com/zh-cn/library/aa366899%28v=vs.85%29.aspx
      **/
-    boolean VirtualProtectEx(long hProcess, long lpAddress, int dwSize, int flNewProtect, int lpflOldProtect);
+    boolean VirtualProtectEx(WinNT.HANDLE hProcess, Pointer lpAddress, BaseTSD.SIZE_T dwSize, WinDef.DWORD flNewProtect, IntByReference lpflOldProtect);
 
     /**
      * 获取当前系统的信息
